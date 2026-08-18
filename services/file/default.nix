@@ -152,7 +152,21 @@ in
     default = { };
     description = "Folder/file module entries";
   };
-  config.files = lib.mkMerge (
-    lib.mapAttrsToList (_: entry: entry.build.files) config.${namespace}.file
-  );
+  config = {
+    # register utilities
+    ${namespace}.utils = {
+      mkFileEntry =
+        {
+          default ? { },
+          description ? "",
+          ...
+        }:
+        utils.mkAttrsOpt {
+          ofType = entryModule;
+          inherit default description;
+        };
+    };
+
+    files = lib.mkMerge (lib.mapAttrsToList (_: entry: entry.build.files) config.${namespace}.file);
+  };
 }
