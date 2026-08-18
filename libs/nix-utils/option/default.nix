@@ -54,5 +54,11 @@ in
         ...
       }@inputs:
       mkPrimOpt (types.attrsOf ofType) inputs;
+    mkAnyOpt =
+      {
+        ofType ? types.anything,
+        ...
+      }@inputs:
+      mkPrimOpt ofType inputs;
   };
 }

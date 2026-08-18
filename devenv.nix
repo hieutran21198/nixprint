@@ -1,6 +1,6 @@
 { ... }:
 let
-  namespace = "nixprint";
+  namespace = "workspace";
   nsImporter = import ./libs/nix-utils/_importer.nix { inherit namespace; };
 in
 {

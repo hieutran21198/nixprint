@@ -78,10 +78,8 @@ let
               "file"
               "no-output"
             ];
-            readOnly = true;
           };
           files = utils.mkAttrsOpt {
-            readOnly = true;
             description = "Files to be created relative to this entry";
             ofType = lib.types.anything;
           };
