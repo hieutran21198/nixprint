@@ -64,6 +64,30 @@ in
                     copyMode = "seed";
                   };
                 };
+                "wiki" = {
+                  enable = true;
+                  entries = {
+                    "README.md" = {
+                      enable = true;
+                      src = {
+                        path = ./assets/file/docs/wiki/README.md;
+                        copyMode = "seed";
+                      };
+                    };
+                    "governance" = {
+                      enable = true;
+                      entries = {
+                        "polyrepo-blueprint" = {
+                          enable = true;
+                          src = {
+                            path = ./assets/file/docs/wiki/governance/polyrepo-blueprint;
+                            copyMode = "seed";
+                          };
+                        };
+                      };
+                    };
+                  };
+                };
               };
             };
             "libs" = {

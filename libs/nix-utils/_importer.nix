@@ -11,10 +11,11 @@ let
     ++ builtins.concatMap (name: findDefaultNix (folder + "/${name}")) subfolders;
 
   importWithNamespace =
-    modulePath: args:
+    modulePath:
+    { pkgs, ... }@args:
     let
       module = import modulePath;
     in
-    if builtins.isFunction module then module (args // { inherit namespace; }) else module;
+    if builtins.isFunction module then module (args // { inherit namespace pkgs; }) else module;
 in
 builtins.map importWithNamespace (builtins.concatMap findDefaultNix folders)

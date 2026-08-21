@@ -27,6 +27,43 @@ in
       ${namespace}.blueprint.polyrepo = {
         file = {
           "docs".entries = {
+            "templates" = {
+              enable = true;
+              src = {
+                path = ./assets/file/docs/templates;
+                copyMode = "copy";
+              };
+            };
+            "wiki" = {
+              entries = {
+                "README.md" = {
+                  enable = true;
+                  src.path = lib.mkForce ./assets/file/docs/wiki/README.md;
+                };
+                "governance".entries = {
+                  "artifact-driven" = {
+                    enable = true;
+                    src = {
+                      path = ./assets/file/docs/wiki/governance/artifact-driven;
+                      copyMode = "seed";
+                    };
+                  };
+                };
+              };
+            };
+            "glossary" = {
+              enable = true;
+              entries = {
+                "README.md" = {
+                  enable = true;
+                  src.path = lib.mkForce ./assets/file/docs/glossary/README.md;
+                };
+                "entries" = {
+                  enable = true;
+                  entries = { };
+                };
+              };
+            };
             "README.md" = {
               # patch README.md file.
               src.path = lib.mkForce ./assets/file/docs/README.md;

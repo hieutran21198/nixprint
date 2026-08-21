@@ -2,6 +2,7 @@
   config,
   namespace,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -26,8 +27,9 @@ in
     };
   };
 
-  config = lib.mkIf cfg.hooks.enable {
-    git-hooks = {
+  config = {
+    packages = with pkgs; [ git ];
+    git-hooks = lib.mkIf cfg.hooks.enable {
       enable = true;
       hooks = {
         check-added-large-files.enable = lib.mkDefault true;
