@@ -18,5 +18,6 @@ the `services` repository category and to `services/agent`.
 - [Specification](specifications/agent-harness-expert-presets.md)
 - [Role Catalog Decision](decisions/replace-roles-with-experts.md)
 - [Integration Decision](decisions/replace-presets-with-integrations.md)
+- [ASD-STE100 Skill Decision](decisions/add-asd-ste100-skill.md)
 - [Tasks](tasks/agent-harness-expert-presets.md)
 - [Implementation Plan](implementation-plan/agent-harness-expert-presets.md)

@@ -12,6 +12,9 @@ expert has a description, persistent instructions, and `defaultSkills`.
 Default skills are portable workflow preferences. They do not grant permission
 or restrict a provider's native permission model.
 
+The service provides the `asd-ste100-writing` skill for new or changed project
+documentation. Artifact-Driven scope experts select this skill by default.
+
 The Artifact-Driven and agent integration activates when Artifact-Driven
 Documentation and the harness are enabled. It provides `scope-expert`,
 `technical-expert`, workflow skills, and the on-demand

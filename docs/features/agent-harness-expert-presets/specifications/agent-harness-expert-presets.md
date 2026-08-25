@@ -15,6 +15,11 @@ This specification satisfies the
 the skills or add lazy-use guidance. It MUST NOT be represented as an
 authorization boundary.
 
+The agent service defines `workspace.agent.skill.skills.asd-ste100-writing`.
+The skill applies ASD-STE100 principles to new or changed project
+documentation. It is available to every enabled harness. The Artifact-Driven
+scope expert selects it by default.
+
 ## Integration Activation
 
 `workspace.integration.artifact-driven-agent.build.enabled` is read-only. It

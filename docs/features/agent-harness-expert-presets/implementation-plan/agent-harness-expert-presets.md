@@ -5,13 +5,16 @@ This plan implements the
 
 ## Sequence
 
-1. Add derived Artifact-Driven and Polyrepo agent integration modules.
-2. Move automatic Artifact-Driven experts and skills into the Artifact-Driven
+1. Add the built-in ASD-STE100 writing skill to the agent service.
+2. Select the skill for Artifact-Driven documentation scope work and local Nix
+   expertise that can change agent instructions.
+3. Add derived Artifact-Driven and Polyrepo agent integration modules.
+4. Move automatic Artifact-Driven experts and skills into the Artifact-Driven
    and agent integration.
-3. Move bounded Polyrepo implementation expert configuration into the
+5. Move bounded Polyrepo implementation expert configuration into the
    Polyrepo and agent integration.
-4. Remove the preset modules and obsolete public option.
-5. Update documentation and run deterministic Nix evaluation checks.
+6. Remove the preset modules and obsolete public option.
+7. Update documentation and run deterministic Nix evaluation checks.
 
 ## Dependencies
 

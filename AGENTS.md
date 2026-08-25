@@ -7,6 +7,9 @@ Before work starts:
 3. Identify the cohesive change scope and its documentation artifacts.
 4. Identify the repository category that owns the implementation.
 
+For new or changed project documentation, use ASD-STE100 principles. Apply the
+`asd-ste100-writing` skill when it is available.
+
 Define and maintain work in `docs/features/<scope-id>/`.
 
 Keep shared knowledge in `docs/wiki/`. Keep defined terms in `docs/glossary/`.

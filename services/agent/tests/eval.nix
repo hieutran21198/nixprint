@@ -271,12 +271,17 @@ assert lib.hasInfix "skills: [\"review-guidance\"]" full.files.".claude/agents/r
 assert lib.hasInfix "mode: subagent" full.files.".opencode/agents/reviewer.md".text;
 assert lib.hasInfix "name: \"review-guidance\""
   full.files.".agents/skills/review-guidance/SKILL.md".text;
+assert full.workspace.agent.skill.skills ? asd-ste100-writing;
+assert lib.hasInfix "name: \"asd-ste100-writing\""
+  full.files.".agents/skills/asd-ste100-writing/SKILL.md".text;
 assert full.files."CLAUDE.md".text == "@AGENTS.md\n";
 assert full.env.DOCUMENTATION_TOKEN == "test-token";
 assert !(lib.hasInfix "test-token" (builtins.toJSON full.files));
 assert artifactOnly.workspace.agent.expert.experts ? scope-expert;
 assert artifactOnly.workspace.agent.expert.experts ? technical-expert;
 assert artifactOnly.workspace.agent.skill.skills ? semantic-artifact-review;
+assert lib.elem "asd-ste100-writing"
+  artifactOnly.workspace.agent.expert.experts.scope-expert.defaultSkills;
 assert artifactOnly.workspace.integration.artifact-driven-agent.build.enabled;
 assert !(artifactWithoutHarness.workspace.agent.expert.experts ? scope-expert);
 assert !(artifactWithoutHarness.workspace.agent.skill.skills ? semantic-artifact-review);
@@ -309,7 +314,8 @@ assert combined.workspace.agent.expert.experts ? agent-service;
 assert combined.workspace.integration.artifact-driven-agent.build.enabled;
 assert combined.workspace.integration.polyrepo-agent.build.enabled;
 assert combined.files.".codex/agents/scope-expert.toml".toml.name == "scope-expert";
-assert lib.hasInfix "skills: [\"artifact-driven-authoring\",\"artifact-driven-coordination\"]"
+assert lib.hasInfix
+  "skills: [\"artifact-driven-authoring\",\"asd-ste100-writing\",\"artifact-driven-coordination\"]"
   combined.files.".claude/agents/scope-expert.md".text;
 assert lib.hasInfix "Default workflow skills: nix-module."
   combined.files.".opencode/agents/agent-service.md".text;

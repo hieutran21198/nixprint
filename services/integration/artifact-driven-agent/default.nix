@@ -36,6 +36,7 @@ in
           '';
           defaultSkills = [
             "artifact-driven-authoring"
+            "asd-ste100-writing"
             "artifact-driven-coordination"
           ]
           ++ lib.optional deliveryWorkflowEnabled "delivery-workflow";

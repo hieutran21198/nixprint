@@ -16,6 +16,8 @@ the required interfaces and activation rules.
 - Keep the active primary agent as coordinator.
 - Keep default skills as workflow preferences. They are not authorization
   boundaries.
+- Provide an agent-neutral ASD-STE100 writing skill for project documentation.
+- Select the ASD-STE100 writing skill for the Artifact-Driven scope expert.
 - Derive Artifact-Driven and Polyrepo agent integration state from their
   participating models and the enabled harness.
 - Do not provide a user-set integration enable option.
@@ -31,6 +33,7 @@ the required interfaces and activation rules.
 
 - Artifact-Driven and agent integration supplies scope and technical experts
   plus shared workflow skills, including on-demand semantic artifact review.
+- The Artifact-Driven scope expert selects the ASD-STE100 writing skill.
 - Polyrepo and agent integration supplies only explicitly configured
   implementation experts.
 - Combined integrations are additive.
