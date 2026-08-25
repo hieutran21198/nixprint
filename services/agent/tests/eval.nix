@@ -161,57 +161,70 @@ let
 
   polyrepoOnly = evaluate {
     workspace.blueprint.use = "polyrepo";
-    workspace.agent = {
-      harness = {
-        enable = true;
-        clients.claude.enable = true;
-      };
-      expert.polyrepo.implementationExperts.agent-service = {
-        description = "Implement bounded changes in the agent service";
-        implementationArea = "services/agent/harness";
-        persistentInstructions = "Change only services/agent and report its validation evidence.";
-        defaultSkills = [ "nix-module" ];
-      };
+    workspace.agent.harness = {
+      enable = true;
+      clients.claude.enable = true;
+    };
+    workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
+      description = "Implement bounded changes in the agent service";
+      implementationArea = "services/agent/harness";
+      persistentInstructions = "Change only services/agent and report its validation evidence.";
+      defaultSkills = [ "nix-module" ];
     };
   };
 
   combined = evaluate {
     workspace.documentation.model = "artifact-driven";
     workspace.blueprint.use = "polyrepo";
-    workspace.agent = {
-      harness = {
-        enable = true;
-        clients = {
-          codex.enable = true;
-          claude.enable = true;
-          opencode.enable = true;
-        };
+    workspace.agent.harness = {
+      enable = true;
+      clients = {
+        codex.enable = true;
+        claude.enable = true;
+        opencode.enable = true;
       };
-      expert.polyrepo.implementationExperts.agent-service = {
-        description = "Implement bounded changes in the agent service";
-        repository = "services/agent";
-        persistentInstructions = "Change only services/agent and report its validation evidence.";
-        defaultSkills = [ "nix-module" ];
-      };
+    };
+    workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
+      description = "Implement bounded changes in the agent service";
+      repository = "services/agent";
+      persistentInstructions = "Change only services/agent and report its validation evidence.";
+      defaultSkills = [ "nix-module" ];
     };
   };
 
-  invalidPolyrepo = evaluate {
-    workspace.agent = {
-      harness = {
-        enable = true;
-        clients.codex.enable = true;
-      };
-      expert.polyrepo.implementationExperts.unbounded = {
-        description = "Invalid Polyrepo implementation expert";
-        persistentInstructions = "This declaration must fail validation.";
-      };
+  unboundedPolyrepo = evaluate {
+    workspace.blueprint.use = "polyrepo";
+    workspace.agent.harness = {
+      enable = true;
+      clients.codex.enable = true;
+    };
+    workspace.integration.polyrepo-agent.implementationExperts.unbounded = {
+      description = "Invalid Polyrepo implementation expert";
+      persistentInstructions = "This declaration must fail validation.";
     };
   };
+
+  outsidePolyrepo = evaluate {
+    workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
+      description = "Invalid Polyrepo implementation expert";
+      repository = "services/agent";
+      persistentInstructions = "This declaration must fail validation.";
+    };
+  };
+
+  legacyPolyrepoOption = builtins.tryEval (
+    (evaluate {
+      workspace.agent.expert.polyrepo.implementationExperts.agent-service = {
+        description = "Obsolete Polyrepo implementation expert";
+        repository = "services/agent";
+        persistentInstructions = "This declaration must fail evaluation.";
+      };
+    }).workspace.agent.expert.experts
+  );
 
   polyrepoWithoutHarness = evaluate {
     workspace.blueprint.use = "polyrepo";
-    workspace.agent.expert.polyrepo.implementationExperts.agent-service = {
+    workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
       description = "Implement bounded changes in the agent service";
       repository = "services/agent";
       persistentInstructions = "Change only services/agent and report its validation evidence.";
@@ -264,12 +277,15 @@ assert !(lib.hasInfix "test-token" (builtins.toJSON full.files));
 assert artifactOnly.workspace.agent.expert.experts ? scope-expert;
 assert artifactOnly.workspace.agent.expert.experts ? technical-expert;
 assert artifactOnly.workspace.agent.skill.skills ? semantic-artifact-review;
+assert artifactOnly.workspace.integration.artifact-driven-agent.build.enabled;
 assert !(artifactWithoutHarness.workspace.agent.expert.experts ? scope-expert);
 assert !(artifactWithoutHarness.workspace.agent.skill.skills ? semantic-artifact-review);
+assert !artifactWithoutHarness.workspace.integration.artifact-driven-agent.build.enabled;
 assert !artifactOnly.workspace.integration.artifact-driven-delivery-workflow.build.enabled;
 assert
   artifactDeliveryWithoutHarness.workspace.integration.artifact-driven-delivery-workflow.build.enabled;
 assert !(artifactDeliveryWithoutHarness.workspace.agent.expert.experts ? scope-expert);
+assert !artifactDeliveryWithoutHarness.workspace.integration.artifact-driven-agent.build.enabled;
 assert artifactDeliveryWithoutHarness.files ? ".dw/config.yaml";
 assert artifactDeliveryWithoutHarness.files ? ".github/workflows/dw-validate.yml";
 assert artifactDeliveryWithoutHarness.files ? ".github/workflows/dw-transition.yml";
@@ -284,17 +300,23 @@ assert lib.hasInfix "delivery.ticket front matter"
 assert !(lib.all (entry: entry.assertion) invalidDeliveryWorkflow.assertions);
 assert polyrepoOnly.workspace.agent.expert.experts ? agent-service;
 assert !(polyrepoOnly.workspace.agent.expert.experts ? scope-expert);
+assert polyrepoOnly.workspace.integration.polyrepo-agent.build.enabled;
 assert !(polyrepoWithoutHarness.workspace.agent.expert.experts ? agent-service);
+assert !polyrepoWithoutHarness.workspace.integration.polyrepo-agent.build.enabled;
 assert combined.workspace.agent.expert.experts ? scope-expert;
 assert combined.workspace.agent.expert.experts ? technical-expert;
 assert combined.workspace.agent.expert.experts ? agent-service;
+assert combined.workspace.integration.artifact-driven-agent.build.enabled;
+assert combined.workspace.integration.polyrepo-agent.build.enabled;
 assert combined.files.".codex/agents/scope-expert.toml".toml.name == "scope-expert";
 assert lib.hasInfix "skills: [\"artifact-driven-authoring\",\"artifact-driven-coordination\"]"
   combined.files.".claude/agents/scope-expert.md".text;
 assert lib.hasInfix "Default workflow skills: nix-module."
   combined.files.".opencode/agents/agent-service.md".text;
 assert combined.files."CLAUDE.md".text == "@AGENTS.md\n";
-assert !(lib.all (entry: entry.assertion) invalidPolyrepo.assertions);
+assert !(lib.all (entry: entry.assertion) unboundedPolyrepo.assertions);
+assert !(lib.all (entry: entry.assertion) outsidePolyrepo.assertions);
+assert !legacyPolyrepoOption.success;
 assert !(codexOnly.files ? ".mcp.json");
 assert !(codexOnly.files ? ".claude/agents/reviewer.md");
 assert !(codexOnly.files ? ".opencode/agents/reviewer.md");

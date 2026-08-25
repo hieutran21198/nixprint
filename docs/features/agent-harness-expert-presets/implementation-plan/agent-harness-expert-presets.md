@@ -1,20 +1,23 @@
-# Agent Harness Expert Presets Implementation Plan
+# Agent Harness Expert Integrations Implementation Plan
 
 This plan implements the
 [task definitions](../tasks/agent-harness-expert-presets.md).
 
 ## Sequence
 
-1. Replace the role option and generated role fields with expert fields.
-2. Add the Artifact-Driven preset and coordinator workflow guidance.
-3. Add the Polyrepo preset with explicit bounded implementation configuration.
-4. Update native client generation and the Claude `AGENTS.md` bridge.
+1. Add derived Artifact-Driven and Polyrepo agent integration modules.
+2. Move automatic Artifact-Driven experts and skills into the Artifact-Driven
+   and agent integration.
+3. Move bounded Polyrepo implementation expert configuration into the
+   Polyrepo and agent integration.
+4. Remove the preset modules and obsolete public option.
 5. Update documentation and run deterministic Nix evaluation checks.
 
 ## Dependencies
 
-- Artifact-Driven Documentation model for artifact presets.
-- Polyrepo blueprint for implementation-expert presets.
+- Artifact-Driven Documentation model for the Artifact-Driven and agent
+  integration.
+- Polyrepo blueprint for the Polyrepo and agent integration.
 - The agent harness and at least one selected client for generated assets.
 
 ## Risks
@@ -23,9 +26,11 @@ This plan implements the
 - A configured implementation scope can be too broad. Configuration validation
   requires a stated repository or implementation area, while review confirms
   that the stated boundary is appropriate.
+- Consumers of the obsolete Polyrepo option must migrate in the same change.
 
 ## Verification
 
-Evaluate Artifact-Driven-only, Polyrepo-only, combined, disabled-harness, and
-invalid-Polyrepo configurations. Check native expert assets, the Claude bridge,
-client selection, MCP secret references, and absence of secret values.
+Evaluate Artifact-Driven-only, Polyrepo-only, combined, disabled-harness,
+unbounded-Polyrepo, and outside-Polyrepo configurations. Check derived
+integration markers, native expert assets, the Claude bridge, client selection,
+MCP secret references, and absence of secret values.

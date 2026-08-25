@@ -5,13 +5,21 @@
   ...
 }:
 let
+  inherit (config.${namespace}) utils;
+  cfg = config.${namespace}.integration.artifact-driven-agent;
   harness = config.${namespace}.agent.harness;
-  enabled = harness.build.enabled && config.${namespace}.documentation.model == "artifact-driven";
   deliveryWorkflowEnabled =
-    enabled && config.${namespace}.integration.artifact-driven-delivery-workflow.build.enabled;
+    cfg.build.enabled
+    && config.${namespace}.integration.artifact-driven-delivery-workflow.build.enabled;
 in
 {
-  config = lib.mkIf enabled {
+  options.${namespace}.integration.artifact-driven-agent.build.enabled = utils.mkBoolOpt {
+    readOnly = true;
+    default = harness.build.enabled && config.${namespace}.documentation.model == "artifact-driven";
+    description = "Enable Artifact-Driven Documentation and agent integration";
+  };
+
+  config = lib.mkIf cfg.build.enabled {
     ${namespace}.agent = {
       expert.experts = {
         scope-expert = lib.mkDefault {

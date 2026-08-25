@@ -1,10 +1,10 @@
-# Agent Harness Expert Presets
+# Agent Harness Expert Integrations
 
 ## Scope
 
-This feature replaces the agent harness role model with a provider-neutral
-expert catalog. It adds automatic Artifact-Driven and Polyrepo expert presets.
-It does not add native teams, shared agent state, direct messaging, or
+This feature provides a provider-neutral expert catalog. It composes
+Artifact-Driven and Polyrepo expertise through derived agent integrations. It
+does not add native teams, shared agent state, direct messaging, or
 provider-specific orchestration.
 
 ## Scope-Level Owner
@@ -16,6 +16,7 @@ the `services` repository category and to `services/agent`.
 
 - [Requirements](requirements/agent-harness-expert-presets.md)
 - [Specification](specifications/agent-harness-expert-presets.md)
-- [Decision](decisions/replace-roles-with-experts.md)
+- [Role Catalog Decision](decisions/replace-roles-with-experts.md)
+- [Integration Decision](decisions/replace-presets-with-integrations.md)
 - [Tasks](tasks/agent-harness-expert-presets.md)
 - [Implementation Plan](implementation-plan/agent-harness-expert-presets.md)
