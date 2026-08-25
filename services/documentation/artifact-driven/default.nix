@@ -124,6 +124,13 @@ in
                       copyMode = "seed";
                     };
                   };
+                  "artifact-driven-execution-system-governance.md" = {
+                    enable = true;
+                    src = {
+                      path = ./assets/file/docs/wiki/research/artifact-driven-execution-system-governance.md;
+                      copyMode = "seed";
+                    };
+                  };
                 };
               };
             };
