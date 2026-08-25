@@ -4,7 +4,21 @@ This service generates project configuration for supported AI-agent clients.
 
 `workspace.agent.harness` selects enabled clients. MCP secret values are
 injected through Devenv's native SecretSpec integration.
-`workspace.agent.mcp`, `workspace.agent.role`, and `workspace.agent.skill`
+`workspace.agent.mcp`, `workspace.agent.expert`, and `workspace.agent.skill`
 define client-neutral project capabilities.
+
+`workspace.agent.expert.experts.<id>` defines a provider-neutral expert. An
+expert has a description, persistent instructions, and `defaultSkills`.
+Default skills are portable workflow preferences. They do not grant permission
+or restrict a provider's native permission model.
+
+The Artifact-Driven preset activates when Artifact-Driven Documentation and the
+harness are enabled. It provides `scope-expert`, `technical-expert`, workflow
+skills, and the on-demand `semantic-artifact-review` skill.
+
+The Polyrepo preset activates when the Polyrepo blueprint and the harness are
+enabled. Configure bounded implementation experts in
+`workspace.agent.expert.polyrepo.implementationExperts`. Each declaration
+must name a repository or another implementation area.
 
 Supported clients are Codex, Claude Code, and OpenCode.

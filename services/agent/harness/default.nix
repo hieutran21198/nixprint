@@ -42,53 +42,68 @@ let
     entries."SKILL.md" = skillDocument name skill;
   }) cfg.build.skills;
 
-  claudeRoleDocument = name: role: {
+  skillGuidance =
+    expert:
+    if expert.defaultSkills == [ ] then
+      ""
+    else
+      ''
+
+        Default workflow skills: ${builtins.concatStringsSep ", " expert.defaultSkills}.
+        Use these skills when they are relevant. They are workflow preferences, not permission boundaries.
+      '';
+
+  claudeExpertDocument = name: expert: {
     enable = true;
     src = {
       text = ''
         ---
         name: ${builtins.toJSON name}
-        description: ${builtins.toJSON role.description}
-        skills: ${builtins.toJSON role.skills}
+        description: ${builtins.toJSON expert.description}
+        skills: ${builtins.toJSON expert.defaultSkills}
         ---
 
-        ${role.instructions}
+        ${expert.persistentInstructions}${skillGuidance expert}
       '';
       copyMode = "copy";
     };
   };
 
-  opencodeRoleDocument = _: role: {
+  opencodeExpertDocument = _: expert: {
     enable = true;
     src = {
       text = ''
         ---
-        description: ${builtins.toJSON role.description}
+        description: ${builtins.toJSON expert.description}
         mode: subagent
         ---
 
-        ${role.instructions}
+        ${expert.persistentInstructions}${skillGuidance expert}
       '';
       copyMode = "copy";
     };
   };
 
-  codexRoleDocument = _: role: {
+  codexExpertDocument = name: expert: {
     enable = true;
     src = {
-      toml = role;
+      toml = {
+        inherit name;
+        inherit (expert) description;
+        developer_instructions = "${expert.persistentInstructions}${skillGuidance expert}";
+      };
       copyMode = "copy";
     };
   };
 
-  codexRoleEntries = lib.mapAttrs' (
-    name: role: lib.nameValuePair "${name}.toml" (codexRoleDocument name role)
+  codexExpertEntries = lib.mapAttrs' (
+    name: expert: lib.nameValuePair "${name}.toml" (codexExpertDocument name expert)
   );
-  claudeRoleEntries = lib.mapAttrs' (
-    name: role: lib.nameValuePair "${name}.md" (claudeRoleDocument name role)
+  claudeExpertEntries = lib.mapAttrs' (
+    name: expert: lib.nameValuePair "${name}.md" (claudeExpertDocument name expert)
   );
-  opencodeRoleEntries = lib.mapAttrs' (
-    name: role: lib.nameValuePair "${name}.md" (opencodeRoleDocument name role)
+  opencodeExpertEntries = lib.mapAttrs' (
+    name: expert: lib.nameValuePair "${name}.md" (opencodeExpertDocument name expert)
   );
 in
 {
@@ -128,10 +143,10 @@ in
           default = { };
           description = "Generated Codex MCP configuration";
         };
-        roles = utils.mkAttrsOpt {
+        experts = utils.mkAttrsOpt {
           ofType = lib.types.anything;
           default = { };
-          description = "Generated Codex role configuration";
+          description = "Generated Codex expert configuration";
         };
       };
       claude = {
@@ -140,10 +155,10 @@ in
           default = { };
           description = "Generated Claude Code MCP configuration";
         };
-        roles = utils.mkAttrsOpt {
+        experts = utils.mkAttrsOpt {
           ofType = lib.types.anything;
           default = { };
-          description = "Generated Claude Code role configuration";
+          description = "Generated Claude Code expert configuration";
         };
       };
       opencode = {
@@ -152,10 +167,10 @@ in
           default = { };
           description = "Generated OpenCode MCP configuration";
         };
-        roles = utils.mkAttrsOpt {
+        experts = utils.mkAttrsOpt {
           ofType = lib.types.anything;
           default = { };
-          description = "Generated OpenCode role configuration";
+          description = "Generated OpenCode expert configuration";
         };
       };
       skills = utils.mkAttrsOpt {
@@ -192,7 +207,7 @@ in
               };
               "agents" = {
                 enable = true;
-                entries = codexRoleEntries cfg.build.codex.roles;
+                entries = codexExpertEntries cfg.build.codex.experts;
               };
             };
           };
@@ -212,12 +227,19 @@ in
             entries = {
               "agents" = {
                 enable = true;
-                entries = claudeRoleEntries cfg.build.claude.roles;
+                entries = claudeExpertEntries cfg.build.claude.experts;
               };
               "skills" = {
                 enable = true;
                 entries = skillEntries;
               };
+            };
+          };
+          "CLAUDE.md" = {
+            enable = true;
+            src = {
+              text = "@AGENTS.md\n";
+              copyMode = "copy";
             };
           };
         })
@@ -237,7 +259,7 @@ in
               };
               "agents" = {
                 enable = true;
-                entries = opencodeRoleEntries cfg.build.opencode.roles;
+                entries = opencodeExpertEntries cfg.build.opencode.experts;
               };
             };
           };
