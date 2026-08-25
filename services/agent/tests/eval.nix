@@ -191,6 +191,7 @@ assert
 assert
   full.files.".codex/config.toml".toml.mcp_servers.documentation.env_vars
   == [ "DOCUMENTATION_TOKEN" ];
+assert lib.all (skill: skill.enabled) full.files.".codex/config.toml".toml.skills.config;
 assert
   full.files.".mcp.json".json.mcpServers.documentation.env.DOCUMENTATION_TOKEN
   == "\${DOCUMENTATION_TOKEN}";

@@ -199,6 +199,7 @@ in
                   toml = {
                     mcp_servers = cfg.build.codex.mcp;
                     skills.config = lib.mapAttrsToList (name: _: {
+                      enabled = true;
                       path = ".agents/skills/${name}/SKILL.md";
                     }) cfg.build.skills;
                   };
