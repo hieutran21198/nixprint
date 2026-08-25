@@ -7,3 +7,4 @@ Read [Artifact-Driven Documentation Governance](wiki/governance/documentation/ar
 ## Feature Records
 
 - [Artifact-Driven Delivery Workflow Integration](features/artifact-driven-delivery-workflow/README.md)
+- [Agent Harness Adapters](features/agent-harness-adapters/README.md)
