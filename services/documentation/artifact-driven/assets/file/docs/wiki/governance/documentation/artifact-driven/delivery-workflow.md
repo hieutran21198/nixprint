@@ -146,6 +146,24 @@ ticket. It MUST apply a transition only when the ticket has its expected state.
 The integration MUST process duplicate and late events safely. It MUST
 reconcile non-terminal review units after a delivery failure.
 
+## Artifact Ticket Correlation
+
+An artifact in phases 1-3 that belongs to a review unit MUST use this YAML
+front-matter contract:
+
+```yaml
+---
+delivery:
+  ticket: "<canonical ticket URL>"
+---
+```
+
+The `delivery.ticket` value MUST identify the review-unit ticket. Related
+artifacts in the same review unit MUST use the same value.
+
+The contract MUST NOT contain provider configuration, a ticket state, or a
+command. The execution-system adapter owns those details.
+
 ## Research Basis
 
 [Artifact-Driven Delivery Workflow Integration Research](../../../research/artifact-driven-execution-system-governance.md)

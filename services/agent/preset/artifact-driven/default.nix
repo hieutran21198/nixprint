@@ -7,6 +7,8 @@
 let
   harness = config.${namespace}.agent.harness;
   enabled = harness.build.enabled && config.${namespace}.documentation.model == "artifact-driven";
+  deliveryWorkflowEnabled =
+    enabled && config.${namespace}.integration.artifact-driven-delivery-workflow.build.enabled;
 in
 {
   config = lib.mkIf enabled {
@@ -20,11 +22,15 @@ in
             Keep feature records in docs/features/<scope-id>/ and shared knowledge in docs/wiki/ or docs/glossary/.
             Do not decide technical correctness or implementation acceptance.
             Escalate a conflict between authoritative documents to the responsible scope owner.
+          ''
+          + lib.optionalString deliveryWorkflowEnabled ''
+            For an active delivery workflow, use the full phase flow: correlate the requirement, specification or ADR, and task or plan artifacts with one ticket before review; register the review unit; start the task ticket before implementation; and verify the accepted merge or explicit rejection outcome.
           '';
           defaultSkills = [
             "artifact-driven-authoring"
             "artifact-driven-coordination"
-          ];
+          ]
+          ++ lib.optional deliveryWorkflowEnabled "delivery-workflow";
         };
         technical-expert = lib.mkDefault {
           description = "Assess technical correctness of decisions and specifications";
@@ -76,6 +82,17 @@ in
             Use this skill only when a semantic artifact review is requested.
             Check the artifact against its authoritative scope, document boundary, terminology, and direct traceability links.
             Report evidence-backed findings. This skill does not create a review lifecycle or accept an artifact.
+          '';
+        };
+      }
+      // lib.optionalAttrs deliveryWorkflowEnabled {
+        delivery-workflow = lib.mkDefault {
+          description = "Correlate Artifact-Driven review units with delivery tickets";
+          instructions = ''
+            Use this skill when Artifact-Driven Documentation and the delivery workflow are both active.
+            For phases 1-3, create or reuse one Draft ticket, record its canonical URL in every review artifact under delivery.ticket front matter, then register the review unit on the pull request.
+            For phase 4, start the Ready task ticket before implementation and register the implementation review unit.
+            Verify the current pull request and ticket state before a transition. An accepted merge advances only the permitted ticket state. Archive phases 1-3 only after an explicit rejection. Keep an implementation ticket In Progress after rejection, close, or rework.
           '';
         };
       };

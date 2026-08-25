@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/cirius/delivery-workflow/internal/artifact"
 	"github.com/cirius/delivery-workflow/internal/config"
 	"github.com/cirius/delivery-workflow/internal/github"
 	"github.com/cirius/delivery-workflow/internal/workflow"
@@ -87,20 +89,37 @@ func (a App) Draft(ctx context.Context, phase workflow.Phase, title string, arti
 	if !phase.Documentation() {
 		return 0, errors.New("dw draft supports phases 1-3 only")
 	}
-	if title == "" {
-		return 0, errors.New("issue title is required")
-	}
 	if len(artifacts) == 0 {
 		return 0, errors.New("at least one artifact path is required")
+	}
+	ticketURL, ticketNumber, found, _, err := a.artifactTicket(artifacts)
+	if err != nil {
+		return 0, err
+	}
+	if found {
+		if err := a.writeArtifactTickets(artifacts, ticketURL); err != nil {
+			return 0, err
+		}
+		return ticketNumber, nil
+	}
+	if title == "" {
+		return 0, errors.New("issue title is required when creating a ticket")
 	}
 	body := fmt.Sprintf("<!-- dw:ticket\nversion: 1\nphase: %s\nartifacts:\n", phase)
 	for _, artifact := range artifacts {
 		body += "  - " + artifact + "\n"
 	}
 	body += "-->\n\nThis ticket tracks an Artifact-Driven Development review unit."
-	number, _, err := a.GitHub.CreateIssue(ctx, a.Config.GitHub.Repository, title, body)
+	number, ticketURL, err := a.GitHub.CreateIssue(ctx, a.Config.GitHub.Repository, title, body)
 	if err != nil {
 		return 0, err
+	}
+	returnedTicketNumber, err := a.ticketNumber(ticketURL)
+	if err != nil {
+		return 0, fmt.Errorf("GitHub returned an invalid ticket URL: %w", err)
+	}
+	if returnedTicketNumber != number {
+		return 0, errors.New("GitHub returned a ticket URL for a different issue")
 	}
 	nodeID, err := a.GitHub.IssueNodeID(ctx, a.Config.GitHub.Repository, number)
 	if err != nil {
@@ -116,6 +135,9 @@ func (a App) Draft(ctx context.Context, phase workflow.Phase, title string, arti
 	if err := a.audit(ctx, number, workflow.AuditMarker(0, "draft")+"\nDraft ticket synchronized."); err != nil {
 		return 0, err
 	}
+	if err := a.writeArtifactTickets(artifacts, ticketURL); err != nil {
+		return 0, err
+	}
 	return number, nil
 }
 
@@ -129,6 +151,25 @@ func (a App) Register(ctx context.Context, prNumber, issue int, phase workflow.P
 	}
 	if phase.Documentation() && len(artifacts) == 0 {
 		return errors.New("artifact paths are required for phases 1-3")
+	}
+	if phase.Documentation() {
+		_, ticketNumber, found, complete, err := a.artifactTicket(artifacts)
+		if err != nil {
+			return err
+		}
+		if !found {
+			return errors.New("delivery.ticket front matter is required for phases 1-3")
+		}
+		if !complete {
+			return errors.New("every review artifact must use the same delivery.ticket URL")
+		}
+		if issue != 0 && issue != ticketNumber {
+			return errors.New("--issue does not match the artifact delivery.ticket URL")
+		}
+		issue = ticketNumber
+	}
+	if issue < 1 {
+		return errors.New("--issue is required for implementation")
 	}
 	pr, err := a.GitHub.GetPullRequest(ctx, a.Config.GitHub.Repository, prNumber)
 	if err != nil {
@@ -157,6 +198,61 @@ func (a App) Register(ctx context.Context, prNumber, issue int, phase workflow.P
 		return err
 	}
 	return a.audit(ctx, issue, workflow.AuditMarker(prNumber, "registered")+fmt.Sprintf("\nReview unit registered for PR #%d.", prNumber))
+}
+
+func (a App) artifactTicket(paths []string) (ticketURL string, ticketNumber int, found, complete bool, err error) {
+	complete = true
+	for _, path := range paths {
+		url, present, readErr := artifact.Ticket(path)
+		if readErr != nil {
+			return "", 0, false, false, readErr
+		}
+		if !present {
+			complete = false
+			continue
+		}
+		number, parseErr := a.ticketNumber(url)
+		if parseErr != nil {
+			return "", 0, false, false, fmt.Errorf("artifact %q: %w", path, parseErr)
+		}
+		if found && url != ticketURL {
+			return "", 0, false, false, errors.New("review artifacts use different delivery.ticket URLs")
+		}
+		ticketURL, ticketNumber, found = url, number, true
+	}
+	return ticketURL, ticketNumber, found, complete, nil
+}
+
+func (a App) writeArtifactTickets(paths []string, ticketURL string) error {
+	for _, path := range paths {
+		if err := artifact.WriteTicket(path, ticketURL); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a App) ticketNumber(ticketURL string) (int, error) {
+	parsed, err := url.Parse(ticketURL)
+	if err != nil {
+		return 0, fmt.Errorf("parse delivery.ticket URL: %w", err)
+	}
+	if parsed.Scheme != "https" || parsed.Host != "github.com" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return 0, errors.New("delivery.ticket must be a canonical GitHub issue URL")
+	}
+	owner, repository, err := a.Config.RepositoryParts()
+	if err != nil {
+		return 0, err
+	}
+	prefix := "/" + owner + "/" + repository + "/issues/"
+	if !strings.HasPrefix(parsed.Path, prefix) || strings.Contains(strings.TrimPrefix(parsed.Path, prefix), "/") {
+		return 0, errors.New("delivery.ticket does not identify an issue in the configured repository")
+	}
+	number, err := strconv.Atoi(strings.TrimPrefix(parsed.Path, prefix))
+	if err != nil || number < 1 {
+		return 0, errors.New("delivery.ticket must end with a positive issue number")
+	}
+	return number, nil
 }
 
 func (a App) Validate(ctx context.Context, prNumber int) error {

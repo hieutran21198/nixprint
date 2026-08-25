@@ -70,6 +70,42 @@ let
     };
   };
 
+  deliveryWorkflow = {
+    enable = true;
+    github = {
+      repository = "example/repository";
+      project = {
+        owner = "example";
+        number = 1;
+        id = "project-node";
+        statusFieldId = "status-field";
+      };
+    };
+    authorizerTeams = [ "delivery-maintainers" ];
+    states = {
+      draft = {
+        id = "draft";
+        sources = [ "draft" ];
+      };
+      ready = {
+        id = "ready";
+        sources = [ "ready" ];
+      };
+      inProgress = {
+        id = "in-progress";
+        sources = [ "in-progress" ];
+      };
+      archived = {
+        id = "archived";
+        sources = [ "archived" ];
+      };
+      implementationAccepted = {
+        id = "accepted";
+        sources = [ "accepted" ];
+      };
+    };
+  };
+
   full = evaluate {
     workspace.agent = {
       harness = {
@@ -103,6 +139,24 @@ let
 
   artifactWithoutHarness = evaluate {
     workspace.documentation.model = "artifact-driven";
+  };
+
+  artifactDeliveryWithoutHarness = evaluate {
+    workspace.documentation.model = "artifact-driven";
+    workspace.delivery-workflow = deliveryWorkflow;
+  };
+
+  artifactDeliveryWithHarness = evaluate {
+    workspace.documentation.model = "artifact-driven";
+    workspace.delivery-workflow = deliveryWorkflow;
+    workspace.agent.harness = {
+      enable = true;
+      clients.codex.enable = true;
+    };
+  };
+
+  invalidDeliveryWorkflow = evaluate {
+    workspace.delivery-workflow = deliveryWorkflow;
   };
 
   polyrepoOnly = evaluate {
@@ -212,6 +266,22 @@ assert artifactOnly.workspace.agent.expert.experts ? technical-expert;
 assert artifactOnly.workspace.agent.skill.skills ? semantic-artifact-review;
 assert !(artifactWithoutHarness.workspace.agent.expert.experts ? scope-expert);
 assert !(artifactWithoutHarness.workspace.agent.skill.skills ? semantic-artifact-review);
+assert !artifactOnly.workspace.integration.artifact-driven-delivery-workflow.build.enabled;
+assert
+  artifactDeliveryWithoutHarness.workspace.integration.artifact-driven-delivery-workflow.build.enabled;
+assert !(artifactDeliveryWithoutHarness.workspace.agent.expert.experts ? scope-expert);
+assert artifactDeliveryWithoutHarness.files ? ".dw/config.yaml";
+assert artifactDeliveryWithoutHarness.files ? ".github/workflows/dw-validate.yml";
+assert artifactDeliveryWithoutHarness.files ? ".github/workflows/dw-transition.yml";
+assert artifactDeliveryWithoutHarness.files ? ".github/workflows/dw-reconcile.yml";
+assert
+  artifactDeliveryWithHarness.workspace.integration.artifact-driven-delivery-workflow.build.enabled;
+assert artifactDeliveryWithHarness.workspace.agent.skill.skills ? delivery-workflow;
+assert lib.hasInfix "delivery-workflow"
+  artifactDeliveryWithHarness.files.".codex/agents/scope-expert.toml".toml.developer_instructions;
+assert lib.hasInfix "delivery.ticket front matter"
+  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert !(lib.all (entry: entry.assertion) invalidDeliveryWorkflow.assertions);
 assert polyrepoOnly.workspace.agent.expert.experts ? agent-service;
 assert !(polyrepoOnly.workspace.agent.expert.experts ? scope-expert);
 assert !(polyrepoWithoutHarness.workspace.agent.expert.experts ? agent-service);

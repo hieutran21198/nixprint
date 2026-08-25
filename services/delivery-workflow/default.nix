@@ -137,41 +137,46 @@ in
     };
   };
 
-  config = lib.mkIf cfg.build.enabled {
-    assertions = [
-      {
-        assertion = cfg.github.repository != "";
-        message = "workspace.delivery-workflow.github.repository is required";
+  config = {
+    assertions =
+      lib.optional cfg.enable {
+        assertion = config.${namespace}.documentation.model == "artifact-driven";
+        message = "workspace.delivery-workflow.enable requires workspace.documentation.model = \"artifact-driven\"";
       }
-      {
-        assertion = cfg.github.project.owner != "" && cfg.github.project.number > 0;
-        message = "workspace.delivery-workflow.github.project.owner and number are required";
-      }
-      {
-        assertion = cfg.github.project.id != "" && cfg.github.project.statusFieldId != "";
-        message = "workspace.delivery-workflow.github.project.id and statusFieldId are required";
-      }
-      {
-        assertion = cfg.authorizerTeams != [ ] || cfg.authorizerUsers != [ ];
-        message = "workspace.delivery-workflow requires an authorizer team or user";
-      }
-      {
-        assertion = cfg.github.project.ownerType != "user" || cfg.authorizerUsers != [ ];
-        message = "a user-owned Project requires workspace.delivery-workflow.authorizerUsers";
-      }
-      {
-        assertion = lib.all (state: state.id != "" && state.sources != [ ]) [
-          cfg.states.draft
-          cfg.states.ready
-          cfg.states.inProgress
-          cfg.states.archived
-          cfg.states.implementationAccepted
-        ];
-        message = "workspace.delivery-workflow.states must define an ID and sources for every semantic";
-      }
-    ];
+      ++ lib.optionals cfg.build.enabled [
+        {
+          assertion = cfg.github.repository != "";
+          message = "workspace.delivery-workflow.github.repository is required";
+        }
+        {
+          assertion = cfg.github.project.owner != "" && cfg.github.project.number > 0;
+          message = "workspace.delivery-workflow.github.project.owner and number are required";
+        }
+        {
+          assertion = cfg.github.project.id != "" && cfg.github.project.statusFieldId != "";
+          message = "workspace.delivery-workflow.github.project.id and statusFieldId are required";
+        }
+        {
+          assertion = cfg.authorizerTeams != [ ] || cfg.authorizerUsers != [ ];
+          message = "workspace.delivery-workflow requires an authorizer team or user";
+        }
+        {
+          assertion = cfg.github.project.ownerType != "user" || cfg.authorizerUsers != [ ];
+          message = "a user-owned Project requires workspace.delivery-workflow.authorizerUsers";
+        }
+        {
+          assertion = lib.all (state: state.id != "" && state.sources != [ ]) [
+            cfg.states.draft
+            cfg.states.ready
+            cfg.states.inProgress
+            cfg.states.archived
+            cfg.states.implementationAccepted
+          ];
+          message = "workspace.delivery-workflow.states must define an ID and sources for every semantic";
+        }
+      ];
 
-    ${namespace}.file = {
+    ${namespace}.file = lib.mkIf cfg.build.enabled {
       ".dw" = {
         enable = true;
         entries = {

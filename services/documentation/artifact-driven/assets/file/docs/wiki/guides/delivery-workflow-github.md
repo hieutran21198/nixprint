@@ -59,7 +59,8 @@ you can set `authorizerTeams`.
 
 ## Generate Repository Files
 
-Set `workspace.delivery-workflow.enable = true`. The Nix option seeds:
+Set `workspace.documentation.model = "artifact-driven"` and
+`workspace.delivery-workflow.enable = true`. The delivery option seeds:
 
 - `.dw/config.yaml`
 - `.github/workflows/dw-validate.yml`
@@ -77,11 +78,13 @@ in-scope PRs.
 
 ## Use the Workflow
 
-For phases 1–3, create the Draft ticket first, then register the PR.
+For phases 1–3, create or reuse the Draft ticket first. The command records
+the canonical ticket URL in the artifact `delivery.ticket` front matter. Then
+register the PR.
 
 ```text
 dw draft --phase requirement --title "Requirement title" --artifact PATH
-dw register --pr PR_NUMBER --issue ISSUE_NUMBER --phase requirement --artifact PATH
+dw register --pr PR_NUMBER --phase requirement --artifact PATH
 ```
 
 For implementation, start the ticket before you register the implementation

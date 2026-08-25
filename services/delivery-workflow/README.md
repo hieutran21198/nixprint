@@ -32,11 +32,16 @@ not store it in `.dw/config.yaml` or Nix configuration.
 
 ```text
 dw draft --phase requirement --title "Document the requirement" --artifact docs/features/example/requirements/requirement.md
-dw register --pr 42 --issue 17 --phase requirement --artifact docs/features/example/requirements/requirement.md
+dw register --pr 42 --phase requirement --artifact docs/features/example/requirements/requirement.md
 dw start --issue 17
 dw register --pr 43 --issue 17 --phase implementation
 dw reject --pr 42 --reason "The requirement is not accepted."
 ```
+
+For phases 1-3, `dw draft` creates or reuses one ticket and records its
+canonical URL in each artifact front matter. `dw register` reads that URL to
+correlate the review unit. An implementation review has no artifact front
+matter, so `dw register --phase implementation` requires `--issue`.
 
 `dw transition` processes a merged pull request. It does not archive an
 unmerged pull request. An implementation merge moves a ticket to the configured
@@ -61,7 +66,8 @@ include both Draft and Code Review Project option IDs.
 
 Set `workspace.delivery-workflow.enable = true` to seed `.dw/config.yaml` and
 the GitHub Actions workflow files. Configure the GitHub Project IDs and the
-state option IDs in the same Nix configuration.
+state option IDs in the same Nix configuration. This option requires
+`workspace.documentation.model = "artifact-driven"`.
 
 ```nix
 workspace.delivery-workflow = {

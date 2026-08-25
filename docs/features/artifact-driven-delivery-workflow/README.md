@@ -2,8 +2,8 @@
 
 ## Scope
 
-This scope defines how an Artifact-Driven Development workflow connects
-version control, CI/CD, and execution systems.
+This scope defines the Nix composition between Artifact-Driven Documentation,
+the GitHub delivery-workflow adapter, and optional agent guidance.
 
 ## Scope-Level Owner
 
@@ -11,18 +11,22 @@ The workspace documentation maintainer owns this scope.
 
 ## Included Concerns
 
-- The four workflow phases and their ticket transitions.
-- GitHub, GitLab, Bitbucket Cloud, Jira, Linear, and GitHub Projects.
-- A provider-independent integration model and reliability constraints.
-- Governance rules derived from the research.
+- A read-only Nix integration marker.
+- The provider-neutral `delivery.ticket` front-matter contract.
+- GitHub adapter activation and agent-harness consumers.
 
 ## Excluded Concerns
 
-- A provider-specific implementation.
-- A provider-specific execution-system state model.
+- GitHub Project and ticket configuration outside `workspace.delivery-workflow`.
+- A second copy of generated delivery files.
 
 ## Documents
 
+- [Requirements](requirements/nix-integration.md)
+- [Specification](specifications/nix-integration.md)
+- [Decision](decisions/derived-integration-marker.md)
+- [Tasks](tasks/nix-integration.md)
+- [Implementation Plan](implementation-plan/nix-integration.md)
+- [Delivery Workflow Governance](../../wiki/governance/documentation/artifact-driven/delivery-workflow.md)
 - [Research Requirement](requirements/delivery-workflow-integration-research.md)
 - [Shared Research](../../wiki/research/artifact-driven-execution-system-governance.md)
-- [Delivery Workflow Governance](../../wiki/governance/documentation/artifact-driven/delivery-workflow.md)

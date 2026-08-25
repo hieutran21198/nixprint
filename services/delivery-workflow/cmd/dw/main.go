@@ -139,8 +139,8 @@ func runRegister(ctx context.Context, args []string) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if *pr < 1 || *issue < 1 {
-		return errors.New("--pr and --issue are required")
+	if *pr < 1 {
+		return errors.New("--pr is required")
 	}
 	service, err := loadApp()
 	if err != nil {
