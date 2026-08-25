@@ -9,15 +9,6 @@ let
 in
 {
   options.${namespace}.blueprint.polyrepo = {
-    workflow = utils.mkEnumOpt {
-      values = [
-        "unset"
-        "artifact-driven"
-        "spec-driven"
-      ];
-      default = "unset";
-      description = "Select the workflow to use for polyrepo blueprint";
-    };
     file = utils.mkFileEntry {
       default = { };
       description = "Polyrepo file entry";
@@ -64,13 +55,6 @@ in
               enable = true;
               description = "Documentation directory";
               entries = {
-                "README.md" = {
-                  enable = true;
-                  src = {
-                    path = ./assets/file/docs/README.md;
-                    copyMode = "seed";
-                  };
-                };
                 "wiki" = {
                   enable = true;
                   description = "Centralized project knowledge";
