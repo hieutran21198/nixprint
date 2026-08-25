@@ -4,6 +4,7 @@ devenv.local.nix
 devenv.local.yaml
 .codex
 .opencode
+.agents/
 
 # direnv
 .direnv
