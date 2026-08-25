@@ -21,7 +21,7 @@ The harness emits native configuration only for selected clients:
 | --- | --- | --- | --- |
 | Codex | `.codex/config.toml` | `.codex/agents/*.toml` | `.agents/skills/` and Codex registrations |
 | Claude Code | `.mcp.json` | `.claude/agents/*.md` | `.claude/skills/` |
-| OpenCode | `opencode.json` | `.opencode/agents/*.md` | `.agents/skills/` |
+| OpenCode | `.opencode/opencode.json` | `.opencode/agents/*.md` | `.agents/skills/` |
 
 MCP servers are project-global. Roles inherit them. The feature does not map
 role-specific tool permissions or MCP allow lists.

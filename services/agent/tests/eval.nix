@@ -105,7 +105,7 @@ assert
   files.".mcp.json".json.mcpServers.documentation.env.DOCUMENTATION_TOKEN
   == "\${DOCUMENTATION_TOKEN}";
 assert
-  files."opencode.json".json.mcp.servers.documentation.environment.DOCUMENTATION_TOKEN
+  files.".opencode/opencode.json".json.mcp.servers.documentation.environment.DOCUMENTATION_TOKEN
   == "{env:DOCUMENTATION_TOKEN}";
 assert
   files.".codex/agents/reviewer.toml".toml.developer_instructions

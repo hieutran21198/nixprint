@@ -222,19 +222,19 @@ in
           };
         })
         (lib.mkIf (enabledClient "opencode") {
-          "opencode.json" = {
-            enable = true;
-            src = {
-              json = {
-                "$schema" = "https://opencode.ai/config.json";
-                mcp.servers = cfg.build.opencode.mcp;
-              };
-              copyMode = "copy";
-            };
-          };
           ".opencode" = {
             enable = true;
             entries = {
+              "opencode.json" = {
+                enable = true;
+                src = {
+                  json = {
+                    "$schema" = "https://opencode.ai/config.json";
+                    mcp.servers = cfg.build.opencode.mcp;
+                  };
+                  copyMode = "copy";
+                };
+              };
               "agents" = {
                 enable = true;
                 entries = opencodeRoleEntries cfg.build.opencode.roles;
