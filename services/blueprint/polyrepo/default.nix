@@ -44,6 +44,13 @@ in
             "." = {
               enable = true;
               entries = {
+                "AGENTS.md" = {
+                  enable = true;
+                  src = {
+                    path = ./assets/file/AGENTS.md;
+                    copyMode = "seed";
+                  };
+                };
                 "README.md" = {
                   enable = true;
                   src = {
@@ -62,6 +69,25 @@ in
                   src = {
                     path = ./assets/file/docs/README.md;
                     copyMode = "seed";
+                  };
+                };
+                "wiki" = {
+                  enable = true;
+                  description = "Centralized project knowledge";
+                  entries = {
+                    "governance" = {
+                      enable = true;
+                      description = "Project governance";
+                      entries = {
+                        "polyrepo.md" = {
+                          enable = true;
+                          src = {
+                            path = ./assets/file/docs/wiki/governance/polyrepo.md;
+                            copyMode = "seed";
+                          };
+                        };
+                      };
+                    };
                   };
                 };
               };
