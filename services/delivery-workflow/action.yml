@@ -1,0 +1,14 @@
+name: Delivery Workflow
+description: Run a dw delivery-workflow command.
+inputs:
+  command:
+    description: Command and arguments for dw.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v6
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+    - shell: bash
+      run: go run "$GITHUB_ACTION_PATH/cmd/dw" ${{ inputs.command }}

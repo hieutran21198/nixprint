@@ -1,0 +1,42 @@
+%YAML 1.1
+---
+acceptance_branch: main
+authorizer_teams: []
+authorizer_users:
+  - hieutran21198
+github:
+  project:
+    id: PVT_kwHOBT4R-M4BhZNq
+    number: 4
+    owner: hieutran21198
+    owner_type: user
+    status_field: Status
+    status_field_id: PVTSSF_lAHOBT4R-M4BhZNqzhgVGcw
+  repository: hieutran21198/nixprint
+states:
+  archived:
+    id: 22d9e7d5
+    name: Archived
+    sources:
+      - 22d9e7d5
+  draft:
+    id: f14914a9
+    name: Draft
+    sources:
+      - f14914a9
+  implementation_accepted:
+    id: cc8d5950
+    name: Ready For Testing
+    sources:
+      - cc8d5950
+  in_progress:
+    id: 47fc9ee4
+    name: In Progress
+    sources:
+      - 47fc9ee4
+  ready:
+    id: f75ad846
+    name: Todo
+    sources:
+      - f75ad846
+version: 1

@@ -1,0 +1,21 @@
+name: Delivery workflow transition
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  transition:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+      - uses: cirius/delivery-workflow@v1
+        env:
+          DW_GITHUB_TOKEN: ${{ secrets.DW_GITHUB_TOKEN }}
+        with:
+          command: transition --event-file ${{ github.event_path }}

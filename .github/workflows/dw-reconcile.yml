@@ -1,0 +1,19 @@
+name: Delivery workflow reconciliation
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./services/delivery-workflow
+        env:
+          DW_GITHUB_TOKEN: ${{ secrets.DW_GITHUB_TOKEN }}
+        with:
+          command: reconcile

@@ -23,6 +23,8 @@ It helps developers and AI agents find, create, and maintain project knowledge.
 - [Ownership](ownership.md) defines authority and acceptance rules.
 - [Navigation](navigation.md) defines indexes and traceability.
 - [Growth](growth.md) defines how the documentation grows.
+- [Delivery Workflow](delivery-workflow.md) defines the workflow for artifact
+  review and implementation delivery.
 
 ## Writing Standard
 

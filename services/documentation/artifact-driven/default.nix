@@ -65,6 +65,13 @@ in
                               copyMode = "seed";
                             };
                           };
+                          "delivery-workflow.md" = {
+                            enable = true;
+                            src = {
+                              path = ./assets/file/docs/wiki/governance/documentation/artifact-driven/delivery-workflow.md;
+                              copyMode = "seed";
+                            };
+                          };
                           "feature-documents.md" = {
                             enable = true;
                             src = {
@@ -128,6 +135,19 @@ in
                     enable = true;
                     src = {
                       path = ./assets/file/docs/wiki/research/artifact-driven-execution-system-governance.md;
+                      copyMode = "seed";
+                    };
+                  };
+                };
+              };
+              "guides" = {
+                enable = true;
+                description = "Delivery workflow setup guides";
+                entries = {
+                  "delivery-workflow-github.md" = {
+                    enable = true;
+                    src = {
+                      path = ./assets/file/docs/wiki/guides/delivery-workflow-github.md;
                       copyMode = "seed";
                     };
                   };

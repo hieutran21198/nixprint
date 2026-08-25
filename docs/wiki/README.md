@@ -12,3 +12,7 @@ This directory contains system-wide knowledge and governance.
 
 - [Centralized Documentation Governance](research/centralized-documentation-governance.md)
 - [Artifact-Driven Execution System Governance](research/artifact-driven-execution-system-governance.md)
+
+## Guides
+
+- [GitHub Delivery Workflow Setup](guides/delivery-workflow-github.md)

@@ -16,8 +16,8 @@ phases:
 4. Implementation.
 
 It covers the connection between Git hosting, continuous integration and
-continuous delivery (CI/CD), and an execution system. It does not define a
-release lifecycle or additional ticket states.
+continuous delivery (CI/CD), and an execution system. It does not prescribe an
+execution-system state model or a release lifecycle.
 
 ## Core Workflow
 
@@ -40,14 +40,13 @@ Task ticket Ready
   -> implementation starts: ticket In Progress
   -> implement
   -> create PR/MR
-  -> merge to the acceptance branch: ticket Done
+  -> merge to the acceptance branch: implementation accepted
   -> rejection, close, or rework: ticket remains In Progress
 ```
 
 An accepted PR/MR is one that merged into the configured, protected acceptance
-branch. An implementation ticket becomes `Done` at merge, as specified by this
-workflow. Deployment evidence is useful, but it does not change `Done` to a
-different meaning.
+branch. An accepted implementation merge defines the implementation acceptance
+boundary. The execution system controls later states, including `Done`.
 
 ### Rejection Semantics
 
@@ -74,8 +73,8 @@ Sources: [GitHub pull-request webhook events](https://docs.github.com/en/webhook
 | --- | --- | --- |
 | Version control | Branches, commits, changed files, PR/MR review, merge result, and immutable merge commit. | Ticket status or deployment completion. |
 | CI | Validation of the proposed artifact or implementation, and the evidence for merge checks. | Acceptance or rejection of the business/work item. |
-| CD | Build promotion and deployment evidence after a merge. | The `Done` transition in this workflow. |
-| Execution system | Ticket identity, the five ticket states, assignment, priority, scheduling, and work history. | Whether Git content is accepted. |
+| CD | Build promotion and deployment evidence after a merge. | Post-implementation ticket state. |
+| Execution system | Ticket identity, state model, assignment, priority, scheduling, and work history. | Whether Git content is accepted. |
 | Integration layer | Correlation, event verification, outcome classification, and the permitted ticket transition. | Repository review policy, CI result, or artifact content. |
 
 Use protected acceptance branches and required approvals and checks. This makes
@@ -108,7 +107,7 @@ The integration needs a durable record for each review unit. Store at least:
 - Phase: `requirement`, `specs-adrs`, `tasks-plan`, or `implementation`.
 - Artifact paths for phases 1–3, or task identifier for phase 4.
 - Repository, PR/MR URL and identifier, source revision, and acceptance branch.
-- Expected ticket state and permitted terminal transition.
+- Expected ticket state and permitted outcome.
 - Rejection decision evidence, when phase is 1–3.
 
 Put the ticket URL or key and the phase in the PR/MR description. A PR/MR
@@ -138,7 +137,7 @@ incorrect transition.
 | Requirement | Draft | Merge to acceptance branch | Explicit rejection | Ready / Archived |
 | Specs + ADRs | Draft | Merge to acceptance branch | Explicit rejection | Ready / Archived |
 | Tasks + implementation plan | Draft | Merge to acceptance branch | Explicit rejection | Ready / Archived |
-| Implementation | In Progress | Merge to acceptance branch | Rejected, closed, or rework | Done / In Progress |
+| Implementation | In Progress | Merge to acceptance branch | Rejected, closed, or rework | Implementation accepted / In Progress |
 
 Do not transition a ticket from a branch push, PR/MR creation, approval, or
 passing CI alone. Those events show progress but do not provide a terminal
@@ -148,16 +147,17 @@ outcome in this model.
 
 | Provider | Git and CI/CD connection | Execution-system mapping |
 | --- | --- | --- |
-| GitHub | Use a PR to a protected branch and required status checks. Listen for `pull_request` events; determine acceptance from the merged result, not a closed event alone. | GitHub Issues can be tickets. In GitHub Projects, use a single-select `Status` field for Draft, Ready, In Progress, Done, and Archived. Do not use an issue-closing keyword for this workflow because it only provides GitHub's coarse closed state and closes on merge. |
+| GitHub | Use a PR to a protected branch and required status checks. Listen for `pull_request` events; determine acceptance from the merged result, not a closed event alone. | GitHub Issues can be tickets. In GitHub Projects, use a single-select `Status` field that maps the workflow semantics and any post-implementation states. Do not use an issue-closing keyword for this workflow because it only provides GitHub's coarse closed state and closes on merge. |
 | GitLab | Use an MR, approval rules, and a successful-pipeline merge check. Its MR webhook provides open, approval, merged, and closed actions. | GitLab Issues or an external execution system can be tickets. The adapter maps the configured status field and permitted transitions. |
 | Bitbucket Cloud | Use a PR, branch restrictions, merge checks, and Pipelines or another build-status provider. Its webhooks include created, merged, and declined PR events. | Jira is the closest native mapping. Jira Automation has PR-created, PR-merged, and PR-declined triggers after source-control integration. Use the same phase table in the automation rule or adapter. |
-| Jira | Jira consumes source-control development events and enforces the configured ticket workflow. Automation can transition a work item, but the target transition must exist in that workflow. | Configure only Draft, Ready, In Progress, Done, and Archived for this model. The automation must distinguish accepted merge from explicit rejection. |
-| Linear | Linear links GitHub PRs and GitLab MRs to issues and can automate status updates from those events. | Configure the five statuses in the appropriate Linear workflow categories. Limit native automations to the phase-table transitions, or use the integration layer where native rules cannot distinguish a close from a rejection. |
+| Jira | Jira consumes source-control development events and enforces the configured ticket workflow. Automation can transition a work item, but the target transition must exist in that workflow. | Map the workflow semantics to the configured state model. The automation must distinguish accepted merge from explicit rejection. |
+| Linear | Linear links GitHub PRs and GitLab MRs to issues and can automate status updates from those events. | Map the workflow semantics to the configured state model. Limit native automations to the phase-table transitions, or use the integration layer where native rules cannot distinguish a close from a rejection. |
 
-GitHub Projects supports custom single-select fields. This permits the required
-five semantic statuses even though a GitHub Issue itself has only its open or
-closed state. GitHub's linked-issue closing keywords close an issue when a PR
-merges to the default branch, so they should not control the ticket state here.
+GitHub Projects supports custom single-select fields. This permits a project to
+map the workflow semantics and additional states even though a GitHub Issue
+itself has only its open or closed state. GitHub's linked-issue closing keywords
+close an issue when a PR merges to the default branch, so they should not
+control the ticket state here.
 
 Sources: [GitHub status checks](https://docs.github.com/en/pull-requests/reference/status-checks), [GitHub Projects single-select fields](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields/about-single-select-fields), [GitHub PR-to-issue linking](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue), [Jira automation triggers](https://support.atlassian.com/cloud-automation/docs/jira-automation-triggers/), [Jira workflow transitions](https://support.atlassian.com/jira-software-cloud/docs/transition-an-issue/), [Linear GitHub integration](https://linear.app/docs/github-integration), [Linear GitLab integration](https://linear.app/docs/gitlab).
 
@@ -172,10 +172,9 @@ tests, static analysis, security checks, and build. Required checks protect the
 acceptance branch. CD starts after the accepted merge and records its result
 against the merge commit or release.
 
-Do not make deployment success update the ticket to `Done`, because the given
-workflow defines merge as completion. If a team requires customer availability
-before completion, it must change that lifecycle definition explicitly rather
-than silently changing this integration.
+An accepted implementation merge defines the implementation acceptance boundary.
+It does not require a `Done` transition. The execution system MAY transition a
+ticket to `Done` after testing, QA, UAT, or release validation.
 
 ## Reliability Requirements and Limitations
 
@@ -189,7 +188,7 @@ The workflow needs the following controls to remain reliable.
   out of order and are not automatically redelivered after failure.
 - Use the merge commit and configured target branch as the acceptance proof.
   An approval, passing check, or auto-merge request is not a merge.
-- Keep one designated review unit per terminal ticket transition. If several
+- Keep one designated review unit per required ticket transition. If several
   PRs/MRs relate to one ticket, designate the one that can complete it or make
   completion wait for all registered required reviews. Otherwise an unrelated
   merge can complete the ticket early.
@@ -210,8 +209,7 @@ Sources: [GitHub webhook delivery failures](https://docs.github.com/en/webhooks/
 
 ## Recommended Adoption Order
 
-1. Configure the five execution-system statuses and only the transitions in
-   the phase table.
+1. Map the workflow semantics to the execution-system state model.
 2. Protect each acceptance branch with review and CI requirements.
 3. Add a PR/MR template with ticket, phase, artifact paths or task, and a
    rejection decision declaration.

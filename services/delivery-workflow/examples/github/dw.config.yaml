@@ -1,0 +1,40 @@
+version: 1
+github:
+  repository: example/example-service
+  project:
+    owner: example
+    owner_type: organization
+    number: 1
+    id: PVT_kwDOExample
+    status_field: Status
+    status_field_id: PVTSSF_example
+acceptance_branch: main
+authorizer_teams:
+  - delivery-maintainers
+authorizer_users: []
+states:
+  draft:
+    id: draft-option-id
+    name: Draft
+    sources:
+      - draft-option-id
+  ready:
+    id: ready-option-id
+    name: Ready
+    sources:
+      - ready-option-id
+  in_progress:
+    id: in-progress-option-id
+    name: In Progress
+    sources:
+      - in-progress-option-id
+  archived:
+    id: archived-option-id
+    name: Archived
+    sources:
+      - archived-option-id
+  implementation_accepted:
+    id: ready-to-test-option-id
+    name: Ready to Test
+    sources:
+      - ready-to-test-option-id

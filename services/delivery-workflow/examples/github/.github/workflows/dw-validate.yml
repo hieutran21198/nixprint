@@ -1,0 +1,17 @@
+name: Delivery workflow validation
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cirius/delivery-workflow@v1
+        with:
+          command: validate --pr ${{ github.event.pull_request.number }}

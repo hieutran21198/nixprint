@@ -8,8 +8,8 @@ execution systems.
 
 ## Constraints
 
-- Preserve the specified Draft, Ready, In Progress, Done, and Archived
-  transitions.
+- Preserve the specified ticket-state semantics without requiring provider
+  state names.
 - Use official provider documentation where possible.
 - Keep the research focused on the core workflow.
 
