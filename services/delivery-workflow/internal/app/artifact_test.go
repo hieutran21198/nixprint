@@ -60,7 +60,7 @@ func TestDraftReusesArtifactTicketAndCompletesCorrelation(t *testing.T) {
 	if err := artifact.WriteTicket(first, url); err != nil {
 		t.Fatal(err)
 	}
-	body, err := workflow.TicketBody(workflow.TicketRecord{Version: 1, Phase: workflow.Requirement, Artifacts: []string{first, second}})
+	body, err := workflow.TicketBody("Define the requirement.", []string{first, second})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestDraftReusesArtifactTicketAndCompletesCorrelation(t *testing.T) {
 	}))
 	defer server.Close()
 	service := App{Config: config.Config{GitHub: config.GitHub{Repository: "example/repository"}}, GitHub: github.NewWithBaseURL("token", server.URL, server.Client())}
-	number, err := service.Draft(context.Background(), workflow.Requirement, "", []string{first, second}, []string{"owner"})
+	number, err := service.Draft(context.Background(), workflow.RequirementClassification, "", "Description.", []string{first, second}, []string{"owner"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestDraftCreatesRootRequirementTicketWithAssignees(t *testing.T) {
 		},
 		GitHub: github.NewWithBaseURL("token", server.URL, server.Client()),
 	}
-	number, err := service.Draft(context.Background(), workflow.Requirement, "Review requirement", []string{path}, []string{"alice", "bob"})
+	number, err := service.Draft(context.Background(), workflow.RequirementClassification, "Review requirement", "Description.", []string{path}, []string{"alice", "bob"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestDraftReusesRootTicketAndPreservesAssignees(t *testing.T) {
 	if err := artifact.WriteTicket(path, "https://github.com/example/repository/issues/17"); err != nil {
 		t.Fatal(err)
 	}
-	body, err := workflow.TicketBody(workflow.TicketRecord{Version: 1, Phase: workflow.Requirement, Artifacts: []string{path}})
+	body, err := workflow.TicketBody("Define the requirement.", []string{path})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestDraftReusesRootTicketAndPreservesAssignees(t *testing.T) {
 		Config: config.Config{GitHub: config.GitHub{Repository: "example/repository"}},
 		GitHub: github.NewWithBaseURL("token", server.URL, server.Client()),
 	}
-	number, err := service.Draft(context.Background(), workflow.Requirement, "", []string{path}, []string{"alice"})
+	number, err := service.Draft(context.Background(), workflow.RequirementClassification, "", "Description.", []string{path}, []string{"alice"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestDraftRejectsIneligibleAssigneeBeforeCreatingTicket(t *testing.T) {
 		Config: config.Config{GitHub: config.GitHub{Repository: "example/repository"}},
 		GitHub: github.NewWithBaseURL("token", server.URL, server.Client()),
 	}
-	if _, err := service.Draft(context.Background(), workflow.Requirement, "Requirement", []string{path}, []string{"alice"}); err == nil {
+	if _, err := service.Draft(context.Background(), workflow.RequirementClassification, "Requirement", "Description.", []string{path}, []string{"alice"}); err == nil {
 		t.Fatal("Draft() succeeded with an ineligible assignee")
 	}
 }
@@ -251,7 +251,7 @@ func TestHandoffCreatesPredecessorLinkedSpecificationTicket(t *testing.T) {
 	if err := os.WriteFile(path, []byte("# Specification\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	parentBody, err := workflow.TicketBody(workflow.TicketRecord{Version: 1, Phase: workflow.Requirement, Artifacts: []string{"requirement.md"}})
+	parentBody, err := workflow.TicketBody("Define the requirement.", []string{"requirement.md"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestHandoffCreatesPredecessorLinkedSpecificationTicket(t *testing.T) {
 									"id":      "parent-item",
 									"content": map[string]string{"id": "requirement-node"},
 									"fieldValues": map[string]any{"nodes": []any{map[string]any{
-										"optionId": "ready",
+										"optionId": "accepted",
 										"field":    map[string]string{"id": "status-field"},
 									}}},
 								}},
@@ -308,6 +308,8 @@ func TestHandoffCreatesPredecessorLinkedSpecificationTicket(t *testing.T) {
 				_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"addProjectV2ItemById": map[string]any{"item": map[string]string{"id": "specification-item"}}}})
 			case strings.Contains(payload.Query, "updateProjectV2ItemFieldValue"):
 				_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"updateProjectV2ItemFieldValue": map[string]any{"projectV2Item": map[string]string{"id": "specification-item"}}}})
+			case strings.Contains(payload.Query, "addSubIssue"):
+				_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"addSubIssue": map[string]any{"issue": map[string]string{"id": "requirement-node"}}}})
 			default:
 				t.Fatalf("unexpected GraphQL query: %s", payload.Query)
 			}
@@ -317,20 +319,16 @@ func TestHandoffCreatesPredecessorLinkedSpecificationTicket(t *testing.T) {
 	}))
 	defer server.Close()
 	state := func(id string) config.State { return config.State{ID: id, Sources: []string{id}} }
-	service := App{Config: config.Config{AcceptanceBranch: "main", GitHub: config.GitHub{Repository: "example/repository", Project: config.Project{ID: "project-node", StatusFieldID: "status-field"}}, States: config.States{Draft: state("draft"), Ready: state("ready"), InProgress: state("progress"), Archived: state("archived"), ImplementationAccepted: state("accepted")}}, GitHub: github.NewWithBaseURL("token", server.URL, server.Client())}
-	number, err := service.Handoff(context.Background(), 17, workflow.SpecsADRs, "Review specification", []string{path}, []string{"lead"})
+	service := App{Config: config.Config{AcceptanceBranch: "main", GitHub: config.GitHub{Repository: "example/repository", Project: config.Project{ID: "project-node", StatusFieldID: "status-field"}}, States: config.States{Draft: state("draft"), Accepted: state("accepted"), Ready: state("ready"), InProgress: state("progress"), Archived: state("archived"), ImplementationAccepted: state("implementation-accepted")}}, GitHub: github.NewWithBaseURL("token", server.URL, server.Client())}
+	number, err := service.Handoff(context.Background(), 17, workflow.SpecificationClassification, "Review specification", "Description.", []string{path}, []string{"lead"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if number != 18 {
 		t.Fatalf("Handoff() = %d, want 18", number)
 	}
-	record, err := workflow.ParseTicket(childBody)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if record.Phase != workflow.SpecsADRs || record.Predecessor == nil || record.Predecessor.Phase != workflow.Requirement || record.Predecessor.URL != "https://github.com/example/repository/issues/17" {
-		t.Fatalf("child ticket record = %#v", record)
+	if strings.Contains(childBody, "dw:ticket") || !strings.Contains(childBody, "Description.") {
+		t.Fatalf("child ticket body = %q", childBody)
 	}
 }
 
@@ -380,7 +378,7 @@ func TestRegisterReadsArtifactTicket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if review.TicketNumber != 17 || review.TicketURL != "https://github.com/example/repository/issues/17" {
-		t.Fatalf("review ticket = %d, %q", review.TicketNumber, review.TicketURL)
+	if review.RequirementNumber != 17 || review.RequirementURL != "https://github.com/example/repository/issues/17" {
+		t.Fatalf("review Requirement = %d, %q", review.RequirementNumber, review.RequirementURL)
 	}
 }

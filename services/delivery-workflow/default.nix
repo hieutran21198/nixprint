@@ -53,12 +53,17 @@ in
       {
         assertion = lib.all (state: state.id != "" && state.sources != [ ]) [
           cfg.states.draft
+          cfg.states.accepted
           cfg.states.ready
           cfg.states.inProgress
           cfg.states.archived
           cfg.states.implementationAccepted
         ];
         message = "workspace.delivery-workflow.states must define an ID and sources for every semantic";
+      }
+      {
+        assertion = lib.all (value: value != "") (lib.attrValues cfg.github.classification);
+        message = "workspace.delivery-workflow.github.classification must define all four classifications";
       }
     ];
 
@@ -70,9 +75,10 @@ in
             enable = true;
             src = {
               yaml = {
-                version = 1;
+                version = 2;
                 github = {
                   inherit (cfg.github) repository;
+                  classification = cfg.github.classification;
                   project = {
                     inherit (cfg.github.project) owner number id;
                     owner_type = cfg.github.project.ownerType;
@@ -85,11 +91,13 @@ in
                 authorizer_users = cfg.authorizerUsers;
                 states = {
                   draft = stateConfiguration cfg.states.draft;
+                  accepted = stateConfiguration cfg.states.accepted;
                   ready = stateConfiguration cfg.states.ready;
                   in_progress = stateConfiguration cfg.states.inProgress;
                   archived = stateConfiguration cfg.states.archived;
                   implementation_accepted = stateConfiguration cfg.states.implementationAccepted;
                 };
+                phase4.auto_transition = cfg.phase4.autoTransition;
               };
               copyMode = "seed";
             };

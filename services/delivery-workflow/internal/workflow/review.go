@@ -11,7 +11,6 @@ import (
 const (
 	markerStart = "<!-- dw:review-unit\n"
 	markerEnd   = "-->"
-	ticketStart = "<!-- dw:ticket\n"
 )
 
 type Phase string
@@ -24,90 +23,66 @@ const (
 )
 
 type ReviewUnit struct {
-	Version          int      `yaml:"version"`
-	TicketURL        string   `yaml:"ticket_url"`
-	TicketNumber     int      `yaml:"ticket_number"`
-	Phase            Phase    `yaml:"phase"`
-	Artifacts        []string `yaml:"artifacts,omitempty"`
-	AcceptanceBranch string   `yaml:"acceptance_branch"`
+	Version           int           `yaml:"version"`
+	RequirementURL    string        `yaml:"requirement_url"`
+	RequirementNumber int           `yaml:"requirement_number"`
+	Phase             Phase         `yaml:"phase"`
+	Groups            []TicketGroup `yaml:"groups"`
+	AcceptanceBranch  string        `yaml:"acceptance_branch"`
 }
 
-// TicketRecord is the delivery-workflow data retained in a GitHub Issue.
-// A child record identifies the accepted ticket that handed work to its phase.
-type TicketRecord struct {
-	Version     int         `yaml:"version"`
-	Phase       Phase       `yaml:"phase"`
-	Artifacts   []string    `yaml:"artifacts"`
-	Predecessor *TicketLink `yaml:"predecessor,omitempty"`
+type Classification string
+
+const (
+	RequirementClassification   Classification = "requirement"
+	SpecificationClassification Classification = "specification"
+	DecisionClassification      Classification = "decision"
+	TaskClassification          Classification = "task"
+)
+
+func (c Classification) Valid() bool {
+	return c == RequirementClassification || c == SpecificationClassification || c == DecisionClassification || c == TaskClassification
 }
 
-type TicketLink struct {
-	URL   string `yaml:"url"`
-	Phase Phase  `yaml:"phase"`
+type TicketGroup struct {
+	TicketURL      string         `yaml:"ticket_url"`
+	TicketNumber   int            `yaml:"ticket_number"`
+	Classification Classification `yaml:"classification"`
+	Artifacts      []string       `yaml:"artifacts,omitempty"`
 }
 
-func (r TicketRecord) Validate() error {
-	if r.Version != 1 {
-		return errors.New("ticket record version must be 1")
+func TicketBody(description string, artifacts []string) (string, error) {
+	description = strings.Join(strings.Fields(description), " ")
+	if description == "" {
+		return "", errors.New("ticket description is required")
 	}
-	if !r.Phase.Documentation() || !r.Phase.Valid() {
-		return fmt.Errorf("ticket record has invalid documentation phase %q", r.Phase)
-	}
-	if len(r.Artifacts) == 0 {
-		return errors.New("ticket record artifact paths are required")
-	}
-	if r.Predecessor == nil {
-		if r.Phase != Requirement {
-			return errors.New("non-requirement ticket record must identify a predecessor")
+	seen := map[string]bool{}
+	var refs []string
+	for _, path := range artifacts {
+		path = strings.TrimSpace(path)
+		if path != "" && !seen[path] {
+			seen[path] = true
+			refs = append(refs, path)
 		}
-		return nil
 	}
-	if r.Phase == Requirement {
-		return errors.New("requirement ticket record must not identify a predecessor")
+	if len(refs) == 0 {
+		return "", errors.New("ticket artifact paths are required")
 	}
-	if r.Predecessor.URL == "" || !r.Predecessor.Phase.Valid() {
-		return errors.New("ticket record predecessor URL and phase are required")
+	var body strings.Builder
+	body.WriteString(description)
+	body.WriteString("\n\nArtifacts:\n")
+	for _, path := range refs {
+		fmt.Fprintf(&body, "- `%s`\n", path)
 	}
-	return nil
+	return body.String(), nil
 }
 
-func ParseTicket(body string) (TicketRecord, error) {
-	start := strings.Index(body, ticketStart)
-	if start == -1 {
-		return TicketRecord{}, errors.New("Issue body has no dw ticket record")
+func (r *ReviewUnit) Validate() error {
+	if r.Version != 2 {
+		return errors.New("review unit version must be 2")
 	}
-	start += len(ticketStart)
-	endOffset := strings.Index(body[start:], markerEnd)
-	if endOffset == -1 {
-		return TicketRecord{}, errors.New("Issue body has an unfinished dw ticket record")
-	}
-	var ticket TicketRecord
-	if err := yaml.Unmarshal([]byte(body[start:start+endOffset]), &ticket); err != nil {
-		return TicketRecord{}, fmt.Errorf("parse ticket record: %w", err)
-	}
-	if err := ticket.Validate(); err != nil {
-		return TicketRecord{}, err
-	}
-	return ticket, nil
-}
-
-func TicketBody(record TicketRecord) (string, error) {
-	if err := record.Validate(); err != nil {
-		return "", err
-	}
-	data, err := yaml.Marshal(record)
-	if err != nil {
-		return "", fmt.Errorf("encode ticket record: %w", err)
-	}
-	return ticketStart + string(data) + markerEnd + "\n\nThis ticket tracks an Artifact-Driven Development review unit.", nil
-}
-
-func (r ReviewUnit) Validate() error {
-	if r.Version != 1 {
-		return errors.New("review unit version must be 1")
-	}
-	if r.TicketURL == "" || r.TicketNumber < 1 {
-		return errors.New("review unit ticket is required")
+	if r.RequirementURL == "" || r.RequirementNumber < 1 {
+		return errors.New("review unit root requirement is required")
 	}
 	if !r.Phase.Valid() {
 		return fmt.Errorf("unknown workflow phase %q", r.Phase)
@@ -115,8 +90,16 @@ func (r ReviewUnit) Validate() error {
 	if r.AcceptanceBranch == "" {
 		return errors.New("review unit acceptance branch is required")
 	}
-	if r.Phase != Implementation && len(r.Artifacts) == 0 {
-		return errors.New("artifact paths are required for phases 1-3")
+	if len(r.Groups) == 0 {
+		return errors.New("review unit ticket groups are required")
+	}
+	for _, group := range r.Groups {
+		if group.TicketURL == "" || group.TicketNumber < 1 || !group.Classification.Valid() {
+			return errors.New("review unit group ticket and classification are required")
+		}
+		if r.Phase != Implementation && len(group.Artifacts) == 0 {
+			return errors.New("artifact paths are required for phases 1-3")
+		}
 	}
 	return nil
 }

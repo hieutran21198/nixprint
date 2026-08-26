@@ -172,11 +172,11 @@ in
               description = "Correlate Artifact-Driven review units with delivery tickets";
               instructions = ''
                 Use this skill when the Artifact-Polyrepo Workspace composition enables Agent Harness and Delivery Workflow.
-                For Phase 1, ask the workflow operator for the requirement owner. Run dw assignees, show the eligible GitHub usernames, and require one to ten selected usernames. Run dw draft --phase requirement with one --assignee value for each selected username. Do not create a ticket without a valid selection.
-                For the Phase-1-to-Phase-2 handoff, verify that the requirement ticket is Ready. Run dw assignees, show the eligible GitHub usernames, and ask the operator for the technical lead. Run dw handoff --predecessor with phase specs-adrs and one --assignee value for each selected technical lead. The technical lead owns the specification and ADR artifacts.
-                For the Phase-2-to-Phase-3 handoff, verify that the specification ticket is Ready. Run dw assignees, show the eligible GitHub usernames, and ask the operator for one to ten builders. Run dw handoff --predecessor with phase tasks-plan and one --assignee value for each selected builder. The technical lead remains the task-plan artifact owner.
-                For phases 1-3, record the ticket URL in every review artifact under delivery.ticket front matter, then register the review unit on the pull request. Assignment identifies GitHub work responsibility. It does not transfer artifact ownership or acceptance authority.
-                For Phase 4, start the accepted Ready task ticket without a new assignment prompt. It reuses its existing builder assignment. Then register the implementation review unit.
+                For Phase 1, run dw draft --classification requirement with the title, one description paragraph, all Requirement artifacts, and one to ten eligible assignees.
+                For Phase 2, verify that the root Requirement is Accepted. Run dw handoff --requirement for each Specification and Decision ticket. Use the applicable classification and the same root Requirement.
+                For Phase 3, verify acceptance of the complete Phase 2 set. Run dw handoff --requirement with classification task for each Task ticket.
+                For phases 1-3, record each ticket URL in its artifacts under delivery.ticket front matter. Register the complete phase artifact set on one pull request. Assignment identifies GitHub work responsibility. It does not transfer artifact ownership or acceptance authority.
+                For Phase 4, start an accepted Ready Task without a new assignment prompt. It reuses its existing builder assignment. Register the implementation pull request with the Task Issue.
                 Verify the current pull request and ticket state before a transition. An accepted merge advances only the permitted ticket state. Archive phases 1-3 only after an explicit rejection. Keep an implementation ticket In Progress after rejection, close, or rework.
               '';
             };

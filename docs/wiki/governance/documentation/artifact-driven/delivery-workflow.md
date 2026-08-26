@@ -11,9 +11,8 @@ deployment.
 ## Terms
 
 - An acceptance branch is the protected branch that accepts a pull request.
-- A review unit is one ticket, one phase, and one pull request.
-- A predecessor is the accepted ticket that authorizes the next documentation
-  phase.
+- A review set is the complete artifact and ticket set for one phase and one pull request.
+- A classification identifies a Requirement, Specification, Decision, or Task ticket.
 - An explicit rejection is an authorized decision to reject a documentation
   review unit.
 
@@ -34,16 +33,15 @@ ownership or acceptance authority.
 
 The Requirement ticket is the root ticket. It has no predecessor.
 
-A Ready Requirement ticket authorizes one Draft Specifications and ADRs
-ticket. A Ready Specifications and ADRs ticket authorizes one Draft Tasks and
-Plan ticket. Each child records the canonical predecessor URL and phase.
+An Accepted Requirement authorizes Phase 2. Acceptance of the complete Phase 2 set authorizes Phase 3. Acceptance of the complete Phase 3 set authorizes Phase 4.
+
+Each Specification, Decision, and Task ticket MUST be a native direct sub-issue of the root Requirement ticket.
 
 The integration MUST reject a handoff when:
 
-- The predecessor is not Ready.
-- The predecessor has the wrong phase.
-- A child has a different predecessor or phase.
-- More than one child links to the predecessor.
+- The complete prior-phase set is not accepted.
+- A child has a different root Requirement.
+- A child does not have the required native parent.
 
 A valid retry reuses the linked child. It keeps current assignees and confirms
 the requested assignees.
@@ -55,7 +53,9 @@ An execution system MAY use different names for these logical states.
 | Event | Required source | Result |
 | --- | --- | --- |
 | Create a documentation ticket | None | Draft |
-| Accept a documentation pull request | Configured Draft source | Ready |
+| Accept Phase 1 | Draft Requirement | Accepted Requirement |
+| Accept Phase 2 | Draft Specification and Decision | Accepted Specification and Decision |
+| Accept Phase 3 | Draft Task | Ready Task |
 | Explicitly reject a documentation review | Configured Draft source | Archived |
 | Start implementation | Ready Tasks and Plan ticket | In Progress |
 | Accept an implementation pull request | Configured In Progress source | Implementation Accepted |
@@ -81,8 +81,7 @@ Implementation review tickets cannot use the archive transition.
 
 ## Correlation
 
-Each documentation artifact in one review unit uses the same canonical ticket
-URL:
+Each documentation artifact uses the canonical URL of its owning ticket:
 
 ```yaml
 ---
@@ -96,9 +95,9 @@ provider configuration, ticket state, or commands.
 
 The pull-request review record retains:
 
-- The ticket URL and number.
+- The root Requirement URL and number.
 - The workflow phase.
-- Artifact paths for documentation phases.
+- Complete ticket, classification, and artifact groups.
 - The acceptance branch.
 - Pull-request correlation.
 

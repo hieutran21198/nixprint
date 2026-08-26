@@ -1,4 +1,4 @@
-version: 1
+version: 2
 github:
   repository: example/example-service
   project:
@@ -8,6 +8,11 @@ github:
     id: PVT_kwDOExample
     status_field: Status
     status_field_id: PVTSSF_example
+  classification:
+    requirement: Requirement
+    specification: Specification
+    decision: Decision
+    task: Task
 acceptance_branch: main
 authorizer_teams:
   - delivery-maintainers
@@ -18,6 +23,11 @@ states:
     name: Draft
     sources:
       - draft-option-id
+  accepted:
+    id: accepted-option-id
+    name: Accepted
+    sources:
+      - accepted-option-id
   ready:
     id: ready-option-id
     name: Ready
@@ -38,3 +48,5 @@ states:
     name: Ready to Test
     sources:
       - ready-to-test-option-id
+phase4:
+  auto_transition: true
