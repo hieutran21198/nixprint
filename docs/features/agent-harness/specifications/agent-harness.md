@@ -1,0 +1,120 @@
+---
+delivery:
+    ticket: https://github.com/hieutran21198/nixprint/issues/3
+---
+# Agent Harness Specification
+
+## Requirement
+
+This specification implements the [Agent Harness Requirements](../requirements/agent-harness.md).
+
+## Configuration Interface
+
+The Agent Harness uses these project options:
+
+| Option | Type and default | Meaning |
+| --- | --- | --- |
+| `workspace.agent.harness.enable` | Boolean, `false` | Enables the harness. |
+| `workspace.agent.harness.clients.<client>.enable` | Boolean, `false` | Enables `codex`, `claude`, or `opencode`. |
+| `workspace.agent.harness.implementationBoundary.mode` | `disabled` or `required`, `disabled` | Selects shared write enforcement. |
+| `workspace.agent.mcp.servers.<id>.command` | List of strings, empty | Defines a local standard input and output command. |
+| `workspace.agent.mcp.servers.<id>.cwd` | Nullable path, `null` | Sets the optional process directory. |
+| `workspace.agent.mcp.servers.<id>.environment` | Attribute set, empty | Sets literal values or `{ secret = "NAME"; }` references. |
+| `workspace.agent.expert.experts.<id>.description` | String | Defines when to use an expert. |
+| `workspace.agent.expert.experts.<id>.persistentInstructions` | String | Defines persistent expert instructions. |
+| `workspace.agent.expert.experts.<id>.defaultSkills` | List of strings, empty | Defines preferred workflow skills. |
+| `workspace.agent.expert.experts.<id>.writePaths` | List of strings, empty | Defines writable files or directory roots. |
+| `workspace.agent.expert.experts.<id>.writeGlobs` | List of strings, empty | Narrows `writePaths` for supported native policies. |
+| `workspace.agent.skill.skills.<id>.description` | String | Defines when to load a skill. |
+| `workspace.agent.skill.skills.<id>.instructions` | String | Defines Agent Skills-compatible content. |
+
+The harness generates files only when the harness and at least one client are
+enabled. Evaluation fails when the harness has no enabled client.
+
+## Generated Client Assets
+
+The harness maps one neutral declaration to each enabled client.
+
+| Client | MCP asset | Expert asset | Skill asset |
+| --- | --- | --- | --- |
+| Codex | `.codex/config.toml` | `.codex/agents/<id>.toml` | `.agents/skills/<id>/SKILL.md`, referenced from the Codex configuration |
+| Claude Code | `.mcp.json` | `.claude/agents/<id>.md` | `.claude/skills/<id>/SKILL.md` and `.agents/skills/<id>/SKILL.md` |
+| OpenCode | `.opencode/opencode.json` | `.opencode/agents/<id>.md` | `.agents/skills/<id>/SKILL.md` |
+
+Claude Code also receives `CLAUDE.md` with an `@AGENTS.md` reference. Every
+enabled client receives the shared `.agents/bin/validate-write` command.
+Disabled clients receive none of their client-specific assets.
+
+## MCP Mapping
+
+Each MCP command list must contain at least one string. The first string is the
+executable for Codex and Claude Code. The remaining strings are arguments.
+OpenCode receives the complete list as its local command.
+
+Literal environment values remain literal. Secret references use the
+SecretSpec environment-variable name:
+
+- Codex uses `env_vars`.
+- Claude Code uses `${NAME}`.
+- OpenCode uses `{env:NAME}`.
+
+Evaluation fails when a secret reference does not have enabled SecretSpec or
+does not identify a declared SecretSpec secret. The generated configuration
+contains the reference. It does not contain the resolved value.
+
+## Expert and Skill Mapping
+
+Experts and skills remain client-neutral until file generation. Each expert
+receives its description, persistent instructions, and default skill guidance.
+Default skills are workflow preferences. They do not change client permission
+settings.
+
+Each `writePath` must be a unique repository-relative file or directory root.
+It must not be empty, `.`, absolute, home-relative, contain parent traversal,
+or contain a glob marker. An empty `writePaths` list is valid for an expert
+that does not implement changes.
+
+Each `writeGlob` must be unique and repository-relative. It must contain a
+glob marker and must not contain parent traversal. Its literal prefix must be
+inside one declared `writePath`.
+
+## Write Enforcement
+
+Claude Code receives a `PreToolUse` hook for `Write` and `Edit`. The hook
+rejects paths outside the repository. It applies `writeGlobs` when present.
+Otherwise, it applies `writePaths`.
+
+OpenCode receives a deny-all edit rule followed by allow rules. The allow
+rules use `writeGlobs` when present. Otherwise, they use each `writePath` and
+its descendants.
+
+Codex receives write guidance. Codex produces an evaluation warning when an
+expert has `writeGlobs`, because those globs do not form a portable Codex
+boundary.
+
+The `required` boundary mode is available only on Linux. It requires an
+enabled harness client and adds Bubblewrap plus this command:
+
+```text
+devenv shell -- workspace-agent-run <expert-id> -- <client command...>
+```
+
+The runner mounts the host file system read-only. It bind-mounts only the
+declared `writePaths` as writable. Each declared path must exist and resolve
+inside the repository. The runner rejects unknown experts and experts without
+write paths. A runner startup failure prevents the client command from
+starting.
+
+Client-native policies are extra guardrails. The Bubblewrap runner is the
+shared enforcement mechanism when the boundary is required.
+
+## Verification
+
+`services/agent/tests/test-module.sh` verifies evaluation, generated assets,
+secret references, expert validation, native policies, and required runner
+generation. `devenv eval` verifies the integrated workspace configuration.
+
+## Decision
+
+The [Provider-Neutral Harness Decision](../decisions/provider-neutral-harness.md)
+defines the selected model.
