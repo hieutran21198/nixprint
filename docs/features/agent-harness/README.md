@@ -33,3 +33,5 @@ the `services` repository category and to `services/agent`.
 - [Specification](specifications/agent-harness.md)
 - [Provider-Neutral Harness Decision](decisions/provider-neutral-harness.md)
 - [Default Project MCP Servers Decision](decisions/default-project-mcp-servers.md)
+- [Declare Project MCP Servers Task](tasks/declare-project-mcp-servers.md)
+- [Implementation Plan](implementation-plan/declare-project-mcp-servers.md)
