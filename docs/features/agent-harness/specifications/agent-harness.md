@@ -51,6 +51,9 @@ Each MCP command list must contain at least one string. The first string is the
 executable for Codex and Claude Code. The remaining strings are arguments.
 OpenCode receives the complete list as its local command.
 
+MCP servers are project-global for each enabled client. Experts do not define
+client-specific MCP allow lists.
+
 Literal environment values remain literal. Secret references use the
 SecretSpec environment-variable name:
 
@@ -68,6 +71,10 @@ Experts and skills remain client-neutral until file generation. Each expert
 receives its description, persistent instructions, and default skill guidance.
 Default skills are workflow preferences. They do not change client permission
 settings.
+
+The Agent service provides `asd-ste100-writing` with default priority. The
+skill applies the project writing standard to new or changed documentation.
+The Artifact-Polyrepo Workspace scope expert selects it by default.
 
 Each `writePath` must be a unique repository-relative file or directory root.
 It must not be empty, `.`, absolute, home-relative, contain parent traversal,

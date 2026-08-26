@@ -46,3 +46,8 @@ are selected.
   GitHub Actions assets.
 - Invalid optional-capability combinations fail Nix evaluation.
 - A deliberately stronger Nix override remains outside the profile contract.
+
+## Specification
+
+See the
+[Artifact-Polyrepo Workspace Specification](../specifications/artifact-polyrepo-workspace.md).

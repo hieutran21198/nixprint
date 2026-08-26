@@ -1,12 +1,8 @@
 # Documentation Governance
 
-This directory contains governance for centralized documentation models.
+This directory contains governance for centralized project documentation.
 
-## Models
-
-- [Artifact-Driven Documentation Governance](artifact-driven/README.md) defines
-  the model for requirements, specifications, decisions, tasks, and
-  implementation plans.
-
-Each documentation model MUST have its own folder. This structure allows other
-models, such as `spec-driven/`, to exist without changing this model.
+The current documentation model is
+[Artifact-Driven Documentation](artifact-driven/README.md). It separates
+feature records, shared knowledge, and defined terms. It also separates each
+feature document by responsibility.

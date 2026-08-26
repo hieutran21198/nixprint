@@ -1,12 +1,11 @@
 # Services
 
-This directory contains server-side services.
+This directory contains server-side services and workspace configuration
+services.
 
-Each service should live in its own repository. Keep the service code, API details, and service-specific documentation together.
+## Available Services
 
-## Available services
-
-- [Agent](agent/README.md) provides project configuration adapters for
-  supported AI-agent clients.
-- [Delivery Workflow](delivery-workflow/README.md) provides the GitHub starter
-  adapter for Artifact-Driven Delivery Workflow transitions.
+- [Agent](agent/README.md) generates provider-native project files from one
+  Agent Harness configuration.
+- [Delivery Workflow](delivery-workflow/README.md) implements the GitHub
+  adapter for documentation and implementation delivery.

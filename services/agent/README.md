@@ -1,43 +1,58 @@
 # Agent Service
 
-This service generates project configuration for supported AI-agent clients.
+This service implements the
+[Agent Harness](../../docs/features/agent-harness/README.md). It generates
+project files for Codex, Claude Code, and OpenCode from one provider-neutral
+configuration.
 
-`workspace.agent.harness` selects enabled clients. MCP secret values are
-injected through Devenv's native SecretSpec integration.
-`workspace.agent.mcp`, `workspace.agent.expert`, and `workspace.agent.skill`
-define client-neutral project capabilities.
+## Configuration
 
-`workspace.agent.expert.experts.<id>` defines a provider-neutral expert. An
-expert has a description, persistent instructions, `defaultSkills`, optional
-`writePaths`, and optional `writeGlobs`. Default skills are portable workflow
-preferences. They do not grant permission or restrict a provider's native
-permission model.
+`workspace.agent.harness` enables the service, selects clients, and selects
+the optional implementation boundary. `workspace.agent.mcp`,
+`workspace.agent.expert`, and `workspace.agent.skill` define neutral MCP
+servers, experts, and skills.
 
-The service provides the `asd-ste100-writing` skill for new or changed project
-documentation. Artifact-Driven scope experts select this skill by default.
+MCP secret values use SecretSpec environment-variable references. Generated
+files contain references, not resolved values.
 
-The `artifact-polyrepo-workspace` composition profile provides
-Artifact-Driven scope and technical experts, workflow skills, and the
-on-demand `semantic-artifact-review` skill when its Agent Harness configuration
-has an enabled client. Configure bounded implementation experts in
-`workspace.blueprint.polyrepo.implementationExperts`. Each declaration must
-define non-empty repository-relative `writePaths`. Optional `writeGlobs` can
-narrow direct edits for Claude Code and OpenCode. They do not make a portable
-Codex write boundary.
+The service provides the `asd-ste100-writing` skill with default priority.
 
-The profile owns its effective Agent Harness settings. Configure them under
-`workspace.composition.agent`; those settings override ordinary direct harness
-settings while the profile is selected.
+## Experts and Write Boundaries
 
-Supported clients are Codex, Claude Code, and OpenCode.
+An expert defines a description, persistent instructions, default skills,
+`writePaths`, and optional `writeGlobs`. Default skills are workflow
+preferences. They do not change provider-native permissions.
 
-Set `workspace.composition.agent.implementationBoundary.mode = "required"`
-to require the Linux Bubblewrap runner. Start an implementation expert with:
+`writePaths` define portable writable files or directory roots.
+`writeGlobs` can narrow direct edits for Claude Code and OpenCode. Codex
+receives a warning because it has no portable native positive-glob boundary.
+
+Set `implementationBoundary.mode = "required"` to add the Linux Bubblewrap
+runner:
 
 ```text
 devenv shell -- workspace-agent-run <expert-id> -- <client command...>
 ```
 
-The runner mounts the repository read-only and makes only the expert's
-declared `writePaths` writable. It fails when Bubblewrap cannot start. A
-client started without the runner does not receive this cross-client guarantee.
+The runner mounts the repository read-only and makes only declared
+`writePaths` writable. It fails closed when the sandbox cannot start. A
+client started without the runner does not receive the shared write guarantee.
+
+## Workspace Composition
+
+The `artifact-polyrepo-workspace` profile owns its effective Agent Harness
+settings under `workspace.composition.agent`. It adds documentation and
+technical experts, shared workflow skills, and explicitly configured Polyrepo
+implementation experts.
+
+Configure implementation experts at
+`workspace.blueprint.polyrepo.implementationExperts`. Each implementation
+expert requires at least one validated write path.
+
+## Validation
+
+Run:
+
+```text
+bash services/agent/tests/test-module.sh
+```

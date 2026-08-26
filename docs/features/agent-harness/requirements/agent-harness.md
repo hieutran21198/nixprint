@@ -21,8 +21,12 @@ implementation write boundaries.
 - Generated files MUST contain secret references and MUST NOT contain resolved
   secret values.
 - Experts and skills MUST remain independent of client-native formats.
+- MCP servers MUST remain project-global. Experts MUST NOT define separate MCP
+  allow lists.
 - Default skills MUST be workflow preferences. They MUST NOT grant or restrict
   provider-native permissions.
+- The Agent service MUST provide the `asd-ste100-writing` skill for enabled
+  harness clients.
 - Expert write paths MUST use validated repository-relative files or directory
   roots.
 - Optional write globs MUST narrow declared write paths.
@@ -45,3 +49,7 @@ implementation write boundaries.
 - Claude Code and OpenCode receive native direct-edit guardrails.
 - Codex receives write-boundary guidance and a warning when write globs cannot
   form a portable native boundary.
+
+## Specification
+
+See the [Agent Harness Specification](../specifications/agent-harness.md).

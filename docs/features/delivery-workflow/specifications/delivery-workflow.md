@@ -40,9 +40,9 @@ delivery:
 
 The URL must identify a positive Issue number in the configured repository.
 
-Each documentation Issue contains a version 1 `dw:ticket` record. A root
-Requirement record has no predecessor. Each child record contains the
-accepted predecessor URL and phase.
+Each documentation Issue contains a version 1 `dw:ticket` record with its
+phase and artifact paths. A root Requirement record has no predecessor. Each
+child record contains the accepted predecessor URL and phase.
 
 Each pull-request body contains one version 1 `dw:review-unit` record. It
 contains the ticket URL and number, phase, artifact paths when applicable, and
@@ -50,9 +50,11 @@ acceptance branch.
 
 ## Command Interface
 
-`dw` reads `.dw/config.yaml`. `DW_CONFIG` can select a different path. Local
-GitHub commands use `GH_TOKEN` or the GitHub CLI login. GitHub Actions can use
-`DW_GITHUB_TOKEN`.
+`dw` reads `.dw/config.yaml`. `DW_CONFIG` can select a different path. GitHub
+authentication checks `DW_GITHUB_TOKEN`, `GH_TOKEN`, and `GITHUB_TOKEN` in
+that order. It uses the GitHub CLI login when none of these variables is set.
+`GITHUB_API_URL` can select the GitHub API base URL. Its default is
+`https://api.github.com`.
 
 | Command | Behavior |
 | --- | --- |
@@ -66,6 +68,30 @@ GitHub commands use `GH_TOKEN` or the GitHub CLI login. GitHub Actions can use
 | `dw transition` | Applies the permitted transition for a merged pull request. |
 | `dw reject` | Archives an authorized documentation review with an explicit reason. |
 | `dw reconcile` | Retries transitions for applicable merged pull requests. |
+
+`dw assignees` reads all GitHub result pages. It removes case-insensitive
+duplicates and sorts usernames without case sensitivity.
+
+The command signatures are:
+
+```text
+dw init --config PATH --repository OWNER/REPOSITORY --project-owner-type organization|user --project-owner OWNER --project NUMBER --acceptance-branch BRANCH --status-field NAME
+dw assignees
+dw draft --phase requirement --title TITLE --artifact PATH... --assignee USER...
+dw handoff --predecessor ISSUE --phase specs-adrs|tasks-plan --title TITLE --artifact PATH... --assignee USER...
+dw start --issue ISSUE
+dw register --pr PR --issue ISSUE --phase PHASE --artifact PATH...
+dw validate --pr PR
+dw transition --pr PR
+dw transition --event-file PATH
+dw reject --pr PR --reason REASON
+dw reconcile
+```
+
+`dw init` defaults to `.dw/config.yaml`, an `organization` owner,
+acceptance branch `main`, and status field `Status`. Documentation
+registration derives the Issue from its artifacts, so `--issue` is optional
+for phases 1 through 3. Implementation registration requires `--issue`.
 
 `dw draft` accepts only `--phase requirement`. `dw draft` and `dw handoff`
 require artifact paths and one to ten distinct eligible assignees. Reuse keeps
@@ -121,11 +147,30 @@ without `github.project.owner_type` remains compatible and means
 
 ## Nix Interface and Generated Assets
 
-`workspace.delivery-workflow.enable` controls generation. The configuration
-also provides `github`, `acceptanceBranch`, `authorizerTeams`,
-`authorizerUsers`, `states`, and `action.ref` options. A user-owned Project
-requires at least one authorized user. Every logical state requires a target
-ID and at least one source ID.
+The Nix interface is:
+
+| Option | Default |
+| --- | --- |
+| `workspace.delivery-workflow.enable` | `false` |
+| `github.repository` | Empty string |
+| `github.project.owner` | Empty string |
+| `github.project.ownerType` | `organization` |
+| `github.project.number` | `0` |
+| `github.project.id` | Empty string |
+| `github.project.statusField` | `Status` |
+| `github.project.statusFieldId` | Empty string |
+| `acceptanceBranch` | `main` |
+| `authorizerTeams` | Empty list |
+| `authorizerUsers` | Empty list |
+| `states.<semantic>.id` | Empty string |
+| `states.<semantic>.name` | Empty string |
+| `states.<semantic>.sources` | Empty list |
+| `action.ref` | `cirius/delivery-workflow@v1` |
+
+The state semantics are `draft`, `ready`, `inProgress`, `archived`, and
+`implementationAccepted`. A user-owned Project requires at least one
+authorized user. Every logical state requires a target ID and at least one
+source ID.
 
 When enabled, the service seeds:
 
