@@ -1,3 +1,7 @@
+---
+delivery:
+    ticket: https://github.com/hieutran21198/nixprint/issues/14
+---
 # Declare Project MCP Servers Task
 
 ## Requirement
