@@ -67,6 +67,7 @@ let
     {
       type = "local";
       command = server.command;
+      enabled = true;
     }
     // lib.optionalAttrs (server.cwd != null) { cwd = toString server.cwd; }
     // lib.optionalAttrs (server.environment != { }) {

@@ -354,7 +354,7 @@ assert
   full.files.".mcp.json".json.mcpServers.documentation.env.DOCUMENTATION_TOKEN
   == "\${DOCUMENTATION_TOKEN}";
 assert
-  full.files.".opencode/opencode.json".json.mcp.servers.documentation.environment.DOCUMENTATION_TOKEN
+  full.files.".opencode/opencode.json".json.mcp.documentation.environment.DOCUMENTATION_TOKEN
   == "{env:DOCUMENTATION_TOKEN}";
 assert lib.hasInfix "Default workflow skills: review-guidance."
   full.files.".codex/agents/reviewer.toml".toml.developer_instructions;

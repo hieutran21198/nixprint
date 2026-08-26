@@ -9,6 +9,12 @@ CLAUDE.md
 .opencode
 .agents/
 
+# Codegraph local index
+.codegraph/
+
+# SecretSpec dotenv store
+.env
+
 # direnv
 .direnv
 

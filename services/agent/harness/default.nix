@@ -411,7 +411,7 @@ in
                   src = {
                     json = {
                       "$schema" = "https://opencode.ai/config.json";
-                      mcp.servers = cfg.build.opencode.mcp;
+                      mcp = cfg.build.opencode.mcp;
                     };
                     copyMode = "copy";
                   };
