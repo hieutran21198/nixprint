@@ -1,201 +1,126 @@
-# Artifact-Driven Delivery Workflow
+# Delivery Workflow Governance
 
 ## Purpose
 
-This document defines the delivery workflow for Artifact-Driven Development.
-It defines how documentation artifacts, pull requests (PRs), merge requests
-(MRs), continuous integration and continuous delivery (CI/CD), and
-execution-system tickets work together.
+This governance defines how Artifact-Driven documents, implementation changes,
+pull requests, and execution-system tickets move through acceptance.
 
-## Scope
-
-This workflow applies to these phases:
-
-1. Requirement.
-2. Specifications and architecture decision records (ADRs).
-3. Tasks and implementation plans.
-4. Implementation.
-
-This document does not define a provider-specific integration or a release
-lifecycle.
+The workflow does not define post-implementation testing, release, or
+deployment.
 
 ## Terms
 
-- An acceptance branch is the protected branch that accepts a PR or MR.
-- An execution system manages tickets and their work data.
-- A review unit is one ticket, one workflow phase, and one PR or MR.
-- An explicit rejection is an authorized decision to reject a review unit.
+- An acceptance branch is the protected branch that accepts a pull request.
+- A review unit is one ticket, one phase, and one pull request.
 - A predecessor is the accepted ticket that authorizes the next documentation
   phase.
+- An explicit rejection is an authorized decision to reject a documentation
+  review unit.
 
-## Ticket State Semantics
+## Phases
 
-This workflow uses these ticket-state semantics:
+| Phase | Artifacts | Artifact owner | Ticket assignment |
+| --- | --- | --- | --- |
+| Requirement | Requirements | Requirement owner | Requirement owner |
+| Specifications and ADRs | Specifications and decisions | Technical lead | Technical lead |
+| Tasks and plan | Tasks and implementation plans | Technical lead | Selected builders |
+| Implementation | Implementation change | Implementation scope owner | Existing builders |
 
-- `Draft`
-- `Ready`
-- `In Progress`
-- `Done`
-- `Archived`
-
-An execution system MAY map these semantics to states with different names. It
-MAY use additional intermediate states, such as `Code Review`, `Ready to Test`,
-`Testing`, `QA`, or `UAT`.
-
-The execution system owns its state model, assignment, priority, scheduling,
-and work history.
-
-## Phases 1–3
-
-For requirements, specifications and ADRs, and tasks and implementation plans,
-the workflow MUST be:
-
-```text
-Draft artifact
-  -> sync ticket as Draft
-  -> create PR/MR
-  -> accepted merge: ticket Ready
-  -> explicit rejection: ticket Archived
-```
-
-The integration MUST create or update the ticket as `Draft` before it registers
-the PR or MR.
-
-The integration MUST transition the ticket to `Ready` only after an accepted
-merge to the acceptance branch.
-
-The integration MUST transition the ticket to `Archived` only after an explicit
-rejection.
+Each documentation phase uses one to ten distinct eligible assignees.
+Assignment identifies execution responsibility. It does not transfer document
+ownership or acceptance authority.
 
 ## Documentation Handoffs
 
-The Requirement owner MUST create the root Phase-1 Requirement ticket. The
-ticket MUST identify one to ten eligible Issue assignees. The Requirement owner
-is the Phase-1 artifact owner and Issue assignee.
+The Requirement ticket is the root ticket. It has no predecessor.
 
-After the Requirement ticket is `Ready`, the Requirement owner MUST hand it to
-a Draft Phase-2 Specifications and ADRs ticket. The technical lead owns the
-Phase-2 artifacts and is the Phase-2 Issue assignee.
+A Ready Requirement ticket authorizes one Draft Specifications and ADRs
+ticket. A Ready Specifications and ADRs ticket authorizes one Draft Tasks and
+Plan ticket. Each child records the canonical predecessor URL and phase.
 
-After the Phase-2 ticket is `Ready`, the technical lead MUST hand it to a Draft
-Phase-3 Tasks and Implementation Plan ticket. The technical lead remains the
-Phase-3 artifact owner. The selected builder is the Phase-3 Issue assignee.
+The integration MUST reject a handoff when:
 
-Each child ticket MUST record its canonical predecessor ticket URL and
-predecessor phase. The integration MUST reject a handoff when the predecessor
-is not `Ready`, has the wrong phase, or already has an invalid child link.
+- The predecessor is not Ready.
+- The predecessor has the wrong phase.
+- A child has a different predecessor or phase.
+- More than one child links to the predecessor.
 
-An Issue assignee identifies GitHub work responsibility. It MUST NOT change
-artifact ownership or acceptance authority.
+A valid retry reuses the linked child. It keeps current assignees and confirms
+the requested assignees.
 
-## Phase 4
+## State Transitions
 
-For implementation, the workflow MUST be:
+An execution system MAY use different names for these logical states.
 
-```text
-Task ticket Ready
-  -> implementation starts: ticket In Progress
-  -> create PR/MR
-  -> accepted merge: implementation accepted
-  -> rejection, close, or rework: ticket remains In Progress
-```
+| Event | Required source | Result |
+| --- | --- | --- |
+| Create a documentation ticket | None | Draft |
+| Accept a documentation pull request | Configured Draft source | Ready |
+| Explicitly reject a documentation review | Configured Draft source | Archived |
+| Start implementation | Ready Tasks and Plan ticket | In Progress |
+| Accept an implementation pull request | Configured In Progress source | Implementation Accepted |
 
-The execution system MUST transition the task ticket from `Ready` to
-`In Progress` when implementation starts.
+Starting implementation reuses existing builder assignments. It does not add,
+remove, or replace an assignee.
 
-The integration MUST start only a `Ready` Phase-3 ticket with one or more
-existing builder assignees. It MUST reuse those assignees. It MUST NOT ask for,
-add, remove, or replace an assignee when Phase 4 starts.
-
-An accepted implementation merge is the ADD implementation acceptance
-boundary. It does not by itself require the task ticket to transition to
-`Done`.
-
-The execution system MAY use post-implementation states and MAY transition the
-task ticket to `Done` after testing, QA, UAT, or release validation.
-
-A rejected, closed, or rework implementation PR or MR MUST NOT change the task
-ticket from `In Progress`.
+A rejected, closed, or reworked implementation pull request leaves the ticket
+In Progress. The execution system can use later testing or release states, but
+those states are outside this workflow.
 
 ## Acceptance and Rejection
 
-An accepted PR or MR MUST merge to the configured acceptance branch.
+An accepted pull request MUST merge to the configured acceptance branch. The
+branch MUST apply the repository's required reviews and checks.
 
-The acceptance branch MUST require the reviews and CI checks that apply to its
-repository.
+A branch push, pull-request creation, approval, or passing check does not
+accept a review unit.
 
-A branch push, PR or MR creation, approval, or passing CI check MUST NOT by
-itself change a terminal ticket state.
+Only an explicit authorized rejection can archive a documentation review
+ticket. An unmerged close or a request for changes does not archive it.
+Implementation review tickets cannot use the archive transition.
 
-An explicit rejection is a provider-independent decision. This governance does
-not prescribe how a provider records that decision.
+## Correlation
 
-An unmerged PR or MR close MUST NOT by itself archive a phase 1–3 ticket. The
-integration MUST classify the close according to its configured rejection
-decision rule.
-
-## System Responsibilities
-
-| System | Responsibility |
-| --- | --- |
-| Version control | Manage branches, commits, PRs or MRs, reviews, and merge results. |
-| CI | Validate the proposed artifact or implementation and report merge-check evidence. |
-| CD | Build, promote, and deploy accepted changes. Record deployment evidence. |
-| Execution system | Manage tickets and execution data. |
-| Integration layer | Correlate review units, classify outcomes, and apply permitted ticket transitions. |
-
-CI MUST validate documentation artifacts in phases 1–3 before merge. CI MUST
-validate implementation in phase 4 before merge.
-
-CD MAY provide deployment evidence. The execution system controls state changes
-after the implementation acceptance boundary, including a transition to `Done`.
-
-## Integration Rules
-
-The integration MUST use provider-independent terms and semantics. It MUST NOT
-require a provider-specific ticket type, field, workflow, or rejection
-mechanism.
-
-For each review unit, the integration MUST retain:
-
-- The ticket identifier or canonical URL.
-- The workflow phase.
-- The artifact paths or task identifier.
-- The PR or MR identifier and repository.
-- The acceptance branch.
-- The permitted outcome.
-
-The PR or MR MUST identify its ticket and workflow phase.
-
-The integration MUST verify the current PR or MR state before it changes a
-ticket. It MUST apply a transition only when the ticket has its expected state.
-
-The integration MUST process duplicate and late events safely. It MUST
-reconcile non-terminal review units after a delivery failure.
-
-A repeated documentation handoff MUST identify the same predecessor and child
-phase. The integration MUST reuse the linked child ticket, retain its existing
-assignees, and confirm that all supplied assignees are present.
-
-## Artifact Ticket Correlation
-
-An artifact in phases 1-3 that belongs to a review unit MUST use this YAML
-front-matter contract:
+Each documentation artifact in one review unit uses the same canonical ticket
+URL:
 
 ```yaml
 ---
 delivery:
-  ticket: "<canonical ticket URL>"
+  ticket: "https://github.com/OWNER/REPOSITORY/issues/NUMBER"
 ---
 ```
 
-The `delivery.ticket` value MUST identify the review-unit ticket. Related
-artifacts in the same review unit MUST use the same value.
+The artifact contract contains only the ticket URL. It does not contain
+provider configuration, ticket state, or commands.
 
-The contract MUST NOT contain provider configuration, a ticket state, or a
-command. The execution-system adapter owns those details.
+The pull-request review record retains:
 
-## Research Basis
+- The ticket URL and number.
+- The workflow phase.
+- Artifact paths for documentation phases.
+- The acceptance branch.
+- Pull-request correlation.
 
-[Artifact-Driven Delivery Workflow Integration Research](../../../research/artifact-driven-execution-system-governance.md)
-provides provider mappings, official sources, and implementation findings.
+The implementation phase reuses the Tasks and Plan ticket and does not require
+artifact front matter.
+
+## Integration Reliability
+
+The integration MUST read current pull-request and ticket state before each
+transition. It MUST reject an unexpected source state.
+
+A transition to the existing target state is a safe retry. The integration
+MUST process duplicate and late accepted events without applying a different
+transition. Reconciliation MUST retry applicable merged review units and
+report failures.
+
+The execution system owns assignment, priority, scheduling, state names, and
+work history. Version control owns branches, reviews, checks, and merge
+results. The integration owns correlation and permitted state changes.
+
+## Current Adapter
+
+The [Delivery Workflow feature](../../../../features/delivery-workflow/README.md)
+defines the implemented GitHub adapter, command interface, configuration, and
+generated workflows.

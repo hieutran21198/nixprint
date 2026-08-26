@@ -32,5 +32,3 @@ belongs to the `services` repository category and to `services/composition`,
 - [Requirements](requirements/artifact-polyrepo-workspace.md)
 - [Specification](specifications/artifact-polyrepo-workspace.md)
 - [Concrete Workspace Profile Decision](decisions/concrete-workspace-profile.md)
-- [Tasks](tasks/artifact-polyrepo-workspace.md)
-- [Implementation Plan](implementation-plan/artifact-polyrepo-workspace.md)

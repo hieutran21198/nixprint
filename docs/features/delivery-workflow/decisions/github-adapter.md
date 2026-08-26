@@ -47,7 +47,3 @@ supports retry without a separate service or database.
 ## Specification
 
 See the [Delivery Workflow Specification](../specifications/delivery-workflow.md).
-
-## Implementation Plan
-
-See the [Delivery Workflow Implementation Plan](../implementation-plan/delivery-workflow.md).

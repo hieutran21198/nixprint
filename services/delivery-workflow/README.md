@@ -1,137 +1,134 @@
 # Delivery Workflow Service
 
-`dw` is the GitHub starter adapter for the Artifact-Driven Delivery Workflow.
-It supports one GitHub repository and one user-owned or organization GitHub
+`dw` implements the GitHub adapter for the
+[Delivery Workflow](../../docs/features/delivery-workflow/README.md). It
+supports one GitHub repository and one user-owned or organization-owned GitHub
 Project.
 
-The tool uses GitHub Issues as tickets. It uses the Project `Status` field for
-workflow semantics. Status names are configured values. They are not required
-names.
+GitHub Issues provide ticket identity. The Project single-select status field
+provides workflow state. Configured option IDs define the logical states, so
+the visible status names can be different.
 
 ## Setup
 
-1. Create a user-owned or organization GitHub Project with a single-select
-   `Status` field.
-2. Create a personal access token (PAT) with access to the repository and
-   Project. Store it as the `DW_GITHUB_TOKEN` repository secret.
-3. Protect the acceptance branch with the applicable reviews and CI checks.
-4. Run `dw init` in the managed repository. The command lists the available
-   Project statuses and writes `.dw/config.yaml` with the selected option IDs.
-5. Add an authorization rule. Use `authorizer_teams` for an organization
-   Project or `authorizer_users` for a user-owned Project.
-6. Add the example validation, transition, and reconciliation workflows.
+1. Create a GitHub Project with a single-select status field.
+2. Protect the configured acceptance branch with applicable reviews and
+   checks.
+3. Create a token that can read the repository and update its Issues and
+   Project.
+4. Run `dw init` and select the Project option for each logical state.
+5. Configure at least one authorized rejection user or team.
+6. Add the validation, transition, and reconciliation workflows.
 
-Use an operator token through `GH_TOKEN` or the GitHub CLI for local commands.
-Use `DW_GITHUB_TOKEN` in GitHub Actions for transition and reconciliation.
+For a user-owned Project, a classic personal access token needs `repo`,
+`read:org`, `read:project`, and `project` scopes. Store the Actions token
+as the `DW_GITHUB_TOKEN` repository secret. Do not store a token in Nix or
+`.dw/config.yaml`.
 
-For a user-owned Project, use a classic PAT with `repo`, `read:org`,
-`read:project`, and `project` scopes. The token is a GitHub Actions secret. Do
-not store it in `.dw/config.yaml` or Nix configuration.
+`dw` reads `DW_GITHUB_TOKEN`, `GH_TOKEN`, then `GITHUB_TOKEN`. It uses
+`gh auth token` when none is set. `GITHUB_API_URL` can select a different
+GitHub API base URL.
+
+Initialize configuration with an operator token:
+
+```text
+dw init \
+  --repository OWNER/REPOSITORY \
+  --project-owner-type user \
+  --project-owner OWNER \
+  --project PROJECT_NUMBER
+```
+
+Use `organization` as the owner type for an organization-owned Project.
 
 ## Commands
 
 ```text
 dw assignees
-dw draft --phase requirement --title "Document the requirement" --artifact docs/features/example/requirements/requirement.md --assignee requirement-owner
-dw handoff --predecessor 17 --phase specs-adrs --title "Review the specification" --artifact docs/features/example/specifications/specification.md --assignee technical-lead
-dw handoff --predecessor 18 --phase tasks-plan --title "Build the change" --artifact docs/features/example/tasks/tasks.md --artifact docs/features/example/implementation-plan/plan.md --assignee builder
-dw register --pr 42 --phase requirement --artifact docs/features/example/requirements/requirement.md
+dw draft --phase requirement --title "Document the requirement" --artifact PATH --assignee OWNER
+dw handoff --predecessor 17 --phase specs-adrs --title "Define the design" --artifact PATH --assignee TECHNICAL_LEAD
+dw handoff --predecessor 18 --phase tasks-plan --title "Plan the change" --artifact TASK_PATH --artifact PLAN_PATH --assignee BUILDER
+dw register --pr 42 --phase requirement --artifact PATH
 dw start --issue 19
 dw register --pr 43 --issue 19 --phase implementation
 dw reject --pr 42 --reason "The requirement is not accepted."
+dw reconcile
 ```
 
+`dw assignees` reads every result page, removes case-insensitive duplicates,
+sorts usernames, and prints one username per line.
+
 `dw draft` creates or reuses only the root Requirement ticket. `dw handoff`
-creates or reuses only a child Specifications and ADRs or Tasks and
-Implementation Plan ticket. Both commands record the canonical URL in each
-artifact front matter. `dw register` reads that URL to correlate the review
-unit. An implementation review has no artifact front matter, so
-`dw register --phase implementation` requires `--issue`.
+creates or reuses only the two permitted child phases. Both commands require
+one to ten distinct eligible assignees. Reuse keeps existing assignees and adds
+the requested users.
 
-`dw transition` processes a merged pull request. It does not archive an
-unmerged pull request. An implementation merge moves a ticket to the configured
-implementation-acceptance status. That status can be `Done`, `Ready to Test`,
-or another Project value.
+Each child ticket records its predecessor URL and phase. A handoff requires a
+Ready predecessor in the exact prior phase. A retry reuses the one correctly
+linked child.
 
-`dw reconcile` rechecks closed merged pull requests for the configured
-acceptance branch. The example schedules it daily and also permits a manual
-run.
+`dw start` accepts only an assigned Ready `tasks-plan` ticket. It moves the
+ticket to In Progress and does not change assignees.
 
-## Phase Handoff Assignment
+`dw register` reads one canonical `delivery.ticket` URL from all
+documentation artifacts. Implementation registration uses `--issue` because
+it has no documentation artifact.
 
-`dw assignees` lists the GitHub usernames that the configured repository can
-assign to an Issue. It prints one username on each line.
+`dw transition` verifies a merged pull request and its acceptance branch
+before it changes a ticket. Documentation merges move Draft to Ready.
+Implementation merges move In Progress to the configured implementation
+acceptance state.
 
-`dw draft` and `dw handoff` require one to ten distinct `--assignee` values.
-They verify every username before they create an Issue or change a Project
-status. They create a new Issue with the selected users. When they reuse an
-existing ticket, they add the selected users and keep its current assignees.
+`dw reject` applies only to documentation phases. It requires an authorized
+actor and an explicit reason. An implementation ticket remains In Progress
+after rejection, close, or rework.
 
-The root Requirement ticket assigns the requirement owner. A Ready Requirement
-ticket hands off to the technical lead for Specifications and ADRs. A Ready
-Specifications and ADRs ticket hands off to selected builders for Tasks and
-Implementation Plans. The technical lead remains the Phase-3 artifact owner.
-
-Each child Issue stores a `dw:ticket` record with its predecessor ticket URL
-and predecessor phase. `dw handoff` rejects a predecessor that is not Ready,
-has the wrong phase, or already has an invalid child link. A repeated handoff
-reuses the correct child, preserves existing collaborators, and confirms the
-supplied assignees.
-
-`dw start` accepts only a Ready `tasks-plan` ticket with one or more existing
-assignees. It changes its Project status to `In Progress`. It never prompts
-for, adds, or replaces an assignee.
-
-An assignee identifies GitHub work responsibility. It does not transfer
-artifact ownership or acceptance authority.
+`dw reconcile` retries applicable merged pull requests. Transitions are safe
+to retry when the ticket already has the target state.
 
 ## Configuration
 
-See [the GitHub configuration example](examples/github/dw.config.yaml). The
-configuration stores GitHub Project field and option IDs. It does not store a
-token or GitHub App private key.
+[The configuration example](examples/github/dw.config.yaml) shows version 1.
+It contains:
 
-The existing workflow token also lists and assigns Issue users. A fine-grained
-token needs GitHub Issues write permission. The authenticated user needs push
-access to add assignees.
+- Repository and Project identifiers.
+- The acceptance branch.
+- Authorized users and teams.
+- Target and permitted source option IDs for each logical state.
 
-The `sources` list permits an execution system to use an intermediate status
-as a valid source for a transition. For example, `states.draft.sources` can
-include both Draft and Code Review Project option IDs.
+The `sources` lists can include intermediate Project values. For example, a
+Draft transition source can include Draft and Code Review.
 
-## Nix Configuration
+Configuration without `github.project.owner_type` remains compatible and
+means `organization`.
 
-Set `workspace.delivery-workflow.enable = true` to seed `.dw/config.yaml` and
-the GitHub Actions workflow files. Configure the GitHub Project IDs and the
-state option IDs in the same Nix configuration. This option requires
-`workspace.documentation.model = "artifact-driven"`.
+## Nix Generation
 
-```nix
-workspace.delivery-workflow = {
-  enable = true;
-  github = {
-    repository = "example/example-service";
-    project = {
-      owner = "example";
-      ownerType = "organization";
-      number = 1;
-      id = "PVT_kwDOExample";
-      statusFieldId = "PVTSSF_example";
-    };
-  };
-  authorizerTeams = [ "delivery-maintainers" ];
-  states = {
-    draft = { id = "draft-option-id"; sources = [ "draft-option-id" ]; };
-    ready = { id = "ready-option-id"; sources = [ "ready-option-id" ]; };
-    inProgress = { id = "in-progress-option-id"; sources = [ "in-progress-option-id" ]; };
-    archived = { id = "archived-option-id"; sources = [ "archived-option-id" ]; };
-    implementationAccepted = {
-      id = "ready-to-test-option-id";
-      sources = [ "ready-to-test-option-id" ];
-    };
-  };
-};
+`workspace.delivery-workflow.enable = true` seeds:
+
+- `.dw/config.yaml`.
+- `.github/workflows/dw-validate.yml`.
+- `.github/workflows/dw-transition.yml`.
+- `.github/workflows/dw-reconcile.yml`.
+
+The standalone module does not inspect the documentation model. The
+`artifact-polyrepo-workspace` profile selects Artifact-Driven Documentation,
+owns its effective configuration at `workspace.composition.deliveryWorkflow`,
+and requires enabled Git hooks.
+
+Set `github.project.ownerType = "user"` and configure `authorizerUsers` for
+a user-owned Project. An organization-owned Project can use
+`authorizerTeams`.
+
+The composite action runs from its own Go module and reads the managed
+repository configuration through `DW_CONFIG`. Validation uses the workflow
+GitHub token. Transition and reconciliation use `DW_GITHUB_TOKEN`.
+
+## Validation
+
+Run:
+
+```text
+cd services/delivery-workflow
+go test ./...
 ```
-
-For a user-owned Project, set `ownerType = "user"` and set
-`authorizerUsers = [ "YOUR_GITHUB_LOGIN" ];`.

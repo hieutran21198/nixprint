@@ -72,83 +72,8 @@ in
                               copyMode = "seed";
                             };
                           };
-                          "feature-documents.md" = {
-                            enable = true;
-                            src = {
-                              path = ./assets/file/docs/wiki/governance/documentation/artifact-driven/feature-documents.md;
-                              copyMode = "seed";
-                            };
-                          };
-                          "growth.md" = {
-                            enable = true;
-                            src = {
-                              path = ./assets/file/docs/wiki/governance/documentation/artifact-driven/growth.md;
-                              copyMode = "seed";
-                            };
-                          };
-                          "navigation.md" = {
-                            enable = true;
-                            src = {
-                              path = ./assets/file/docs/wiki/governance/documentation/artifact-driven/navigation.md;
-                              copyMode = "seed";
-                            };
-                          };
-                          "ownership.md" = {
-                            enable = true;
-                            src = {
-                              path = ./assets/file/docs/wiki/governance/documentation/artifact-driven/ownership.md;
-                              copyMode = "seed";
-                            };
-                          };
-                          "shared-knowledge.md" = {
-                            enable = true;
-                            src = {
-                              path = ./assets/file/docs/wiki/governance/documentation/artifact-driven/shared-knowledge.md;
-                              copyMode = "seed";
-                            };
-                          };
-                          "structure.md" = {
-                            enable = true;
-                            src = {
-                              path = ./assets/file/docs/wiki/governance/documentation/artifact-driven/structure.md;
-                              copyMode = "seed";
-                            };
-                          };
                         };
                       };
-                    };
-                  };
-                };
-              };
-              "research" = {
-                enable = true;
-                description = "Documentation governance research";
-                entries = {
-                  "centralized-documentation-governance.md" = {
-                    enable = true;
-                    src = {
-                      path = ./assets/file/docs/wiki/research/centralized-documentation-governance.md;
-                      copyMode = "seed";
-                    };
-                  };
-                  "artifact-driven-execution-system-governance.md" = {
-                    enable = true;
-                    src = {
-                      path = ./assets/file/docs/wiki/research/artifact-driven-execution-system-governance.md;
-                      copyMode = "seed";
-                    };
-                  };
-                };
-              };
-              "guides" = {
-                enable = true;
-                description = "Delivery workflow setup guides";
-                entries = {
-                  "delivery-workflow-github.md" = {
-                    enable = true;
-                    src = {
-                      path = ./assets/file/docs/wiki/guides/delivery-workflow-github.md;
-                      copyMode = "seed";
                     };
                   };
                 };

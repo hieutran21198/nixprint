@@ -39,14 +39,12 @@ that applies only verified and permitted ticket transitions.
 - The GitHub adapter MUST support one repository and one user-owned or
   organization-owned GitHub Project.
 - Tokens and resolved secrets MUST NOT be stored in repository configuration.
-- Delivery Workflow file generation MUST require Artifact-Driven
-  Documentation.
 
 ## Acceptance Criteria
 
 - `dw init` discovers the selected Project status field and writes version 1
   repository configuration.
-- `dw assignees` lists all eligible Issue assignees.
+- `dw assignees` lists all eligible Issue assignees in a stable order.
 - `dw draft` creates or reuses only a root Requirement ticket.
 - `dw handoff` creates or safely reuses only the permitted child phases.
 - `dw start` accepts only an assigned Ready task-plan ticket.
@@ -61,3 +59,7 @@ that applies only verified and permitted ticket transitions.
   terminal transitions.
 - Nix configuration seeds `.dw/config.yaml` and the validation, transition,
   and reconciliation GitHub Actions workflows.
+
+## Specification
+
+See the [Delivery Workflow Specification](../specifications/delivery-workflow.md).

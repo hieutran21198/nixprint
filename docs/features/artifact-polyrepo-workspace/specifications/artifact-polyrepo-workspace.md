@@ -87,6 +87,32 @@ It adds `delivery-workflow` only when the effective Agent Harness and profile
 Delivery Workflow are both enabled. The profile maps the resulting catalog to
 each enabled client through the Agent Harness.
 
+The scope expert selects `artifact-driven-authoring`, `asd-ste100-writing`,
+and `artifact-driven-coordination`. It also selects `delivery-workflow` when
+that skill is active. The technical expert selects
+`artifact-driven-technical-review` and `artifact-driven-coordination`.
+
+## Coordination Rules
+
+The active primary agent remains the coordinator. The coordinator identifies
+the accepted authority, delegates only a bounded scope, routes accepted context
+to implementation, and collects validation evidence. It does not accept
+documents or resolve an authority conflict.
+
+The scope expert identifies the cohesive feature scope and canonical
+documents. Scope authority accepts requirements and resolves documentation
+authority conflicts. The scope expert does not decide technical correctness or
+implementation acceptance.
+
+The technical expert checks decisions and specifications for assumptions,
+interfaces, constraints, failure conditions, and verification. It does not
+accept requirements, resolve documentation authority, or accept
+implementation.
+
+`semantic-artifact-review` is on demand. It checks one document against its
+scope, document boundary, terminology, and direct traceability links. It does
+not create a review lifecycle or accept the document.
+
 ## Failure Conditions
 
 Nix evaluation fails in these cases:
