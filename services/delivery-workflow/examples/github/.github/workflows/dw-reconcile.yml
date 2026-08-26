@@ -5,7 +5,8 @@ on:
     - cron: "17 3 * * *"
   workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   reconcile:
