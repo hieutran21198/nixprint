@@ -1,7 +1,3 @@
----
-delivery:
-    ticket: https://github.com/hieutran21198/nixprint/issues/3
----
 # Agent Harness Specification
 
 ## Requirement
@@ -65,6 +61,43 @@ Evaluation fails when a secret reference does not have enabled SecretSpec or
 does not identify a declared SecretSpec secret. The generated configuration
 contains the reference. It does not contain the resolved value.
 
+## Project MCP Servers
+
+The workspace declares two project MCP servers through the neutral options.
+Every enabled client receives both servers.
+
+`context7` provides current library documentation. It uses this declaration:
+
+```nix
+workspace.agent.mcp.servers.context7 = {
+  command = [ "npx" "-y" "@upstash/context7-mcp" ];
+  environment.CONTEXT7_API_KEY = { secret = "CONTEXT7_API_KEY"; };
+};
+```
+
+The `CONTEXT7_API_KEY` secret is optional. When no key is configured, the
+server runs without an API key and may receive rate limits. When the secret is
+declared, SecretSpec supplies it at startup, and every generated client asset
+contains only the `{env:CONTEXT7_API_KEY}`, `${CONTEXT7_API_KEY}`, or
+`env_vars` reference form for its client.
+
+`codegraph` provides code-graph queries over a local repository index. It uses
+this declaration:
+
+```nix
+workspace.agent.mcp.servers.codegraph = {
+  command = [ "codegraph" "serve" "--mcp" ];
+  cwd = ./.;
+};
+```
+
+The `codegraph` command comes from the `@colbymchenry/codegraph` package. The
+repository root is the process directory. The server reads the local
+`.codegraph/` index. The index requires one `codegraph init` run in the
+repository root. The server auto-syncs the index on file changes. The
+`.codegraph/` directory MUST NOT enter version control. `codegraph` declares
+no secrets and no literal environment values.
+
 ## Expert and Skill Mapping
 
 Experts and skills remain client-neutral until file generation. Each expert
@@ -118,10 +151,13 @@ shared enforcement mechanism when the boundary is required.
 ## Verification
 
 `services/agent/tests/test-module.sh` verifies evaluation, generated assets,
-secret references, expert validation, native policies, and required runner
-generation. `devenv eval` verifies the integrated workspace configuration.
+secret references, expert validation, native policies, required runner
+generation, and the `context7` and `codegraph` server declarations.
+`devenv eval` verifies the integrated workspace configuration.
 
 ## Decision
 
 The [Provider-Neutral Harness Decision](../decisions/provider-neutral-harness.md)
-defines the selected model.
+defines the selected model. The
+[Default Project MCP Servers Decision](../decisions/default-project-mcp-servers.md)
+defines the selected servers.
