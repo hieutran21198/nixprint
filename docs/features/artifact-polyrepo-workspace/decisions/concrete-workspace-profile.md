@@ -50,3 +50,8 @@ configuration.
 
 See the
 [Artifact-Polyrepo Workspace Specification](../specifications/artifact-polyrepo-workspace.md).
+
+## Implementation Plan
+
+See the
+[Artifact-Polyrepo Workspace Implementation Plan](../implementation-plan/artifact-polyrepo-workspace.md).

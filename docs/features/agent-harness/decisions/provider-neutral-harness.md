@@ -45,3 +45,7 @@ write enforcement from client-specific policy capabilities.
 ## Specification
 
 See the [Agent Harness Specification](../specifications/agent-harness.md).
+
+## Implementation Plan
+
+See the [Agent Harness Implementation Plan](../implementation-plan/agent-harness.md).
