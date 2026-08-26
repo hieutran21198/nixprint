@@ -1,3 +1,7 @@
+---
+delivery:
+    ticket: https://github.com/hieutran21198/nixprint/issues/12
+---
 # Default Project MCP Servers Decision
 
 ## Requirement
