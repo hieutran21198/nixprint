@@ -14,5 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cirius/delivery-workflow@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           command: validate --pr ${{ github.event.pull_request.number }}
