@@ -15,17 +15,15 @@ or restrict a provider's native permission model.
 The service provides the `asd-ste100-writing` skill for new or changed project
 documentation. Artifact-Driven scope experts select this skill by default.
 
-The Artifact-Driven and agent integration activates when Artifact-Driven
-Documentation and the harness are enabled. It provides `scope-expert`,
-`technical-expert`, workflow skills, and the on-demand
-`semantic-artifact-review` skill.
+The `artifact-polyrepo-workspace` composition profile provides
+Artifact-Driven scope and technical experts, workflow skills, and the
+on-demand `semantic-artifact-review` skill when its Agent Harness configuration
+has an enabled client. Configure bounded implementation experts in
+`workspace.blueprint.polyrepo.implementationExperts`. Each declaration must
+name a repository or another implementation area.
 
-The Polyrepo and agent integration activates when the Polyrepo blueprint and
-the harness are enabled. Configure bounded implementation experts in
-`workspace.integration.polyrepo-agent.implementationExperts`. Each declaration
-must name a repository or another implementation area.
-
-Both integrations expose a read-only `build.enabled` marker. They have no
-user-set enable option.
+The profile owns its effective Agent Harness settings. Configure them under
+`workspace.composition.agent`; those settings override ordinary direct harness
+settings while the profile is selected.
 
 Supported clients are Codex, Claude Code, and OpenCode.

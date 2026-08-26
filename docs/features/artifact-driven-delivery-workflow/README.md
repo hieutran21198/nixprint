@@ -1,9 +1,10 @@
-# Artifact-Driven Delivery Workflow Integration
+# Artifact-Driven Delivery Workflow Record
 
 ## Scope
 
-This scope defines the Nix composition between Artifact-Driven Documentation,
-the GitHub delivery-workflow adapter, and optional agent guidance.
+This historical scope defines the delivery ticket contract and GitHub adapter.
+The current Nix composition is the
+[Artifact-Polyrepo Workspace profile](../workspace-composition-profiles/README.md).
 
 ## Scope-Level Owner
 
@@ -11,9 +12,8 @@ The workspace documentation maintainer owns this scope.
 
 ## Included Concerns
 
-- A read-only Nix integration marker.
 - The provider-neutral `delivery.ticket` front-matter contract.
-- GitHub adapter activation and agent-harness consumers.
+- GitHub adapter behavior and agent-harness guidance.
 
 ## Excluded Concerns
 

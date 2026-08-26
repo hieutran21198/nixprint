@@ -1,11 +1,12 @@
-# Agent Harness Expert Integrations
+# Agent Harness Expert Catalog
 
 ## Scope
 
-This feature provides a provider-neutral expert catalog. It composes
-Artifact-Driven and Polyrepo expertise through derived agent integrations. It
-does not add native teams, shared agent state, direct messaging, or
-provider-specific orchestration.
+This historical feature provides the provider-neutral expert catalog. The
+current Artifact-Driven and Polyrepo combined behavior is owned by the
+[Workspace Composition Profiles](../workspace-composition-profiles/README.md)
+feature. It does not add native teams, shared agent state, direct messaging,
+or provider-specific orchestration.
 
 ## Scope-Level Owner
 

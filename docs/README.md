@@ -6,7 +6,8 @@ Read [Artifact-Driven Documentation Governance](wiki/governance/documentation/ar
 
 ## Feature Records
 
-- [Artifact-Driven Delivery Workflow Integration](features/artifact-driven-delivery-workflow/README.md)
+- [Artifact-Driven Delivery Workflow Record](features/artifact-driven-delivery-workflow/README.md)
 - [Agent Harness Adapters](features/agent-harness-adapters/README.md)
 - [Agent Harness Expert Presets](features/agent-harness-expert-presets/README.md)
 - [Agent Phase Handoff Assignment](features/agent-phase-handoff-assignment/README.md)
+- [Workspace Composition Profiles](features/workspace-composition-profiles/README.md)

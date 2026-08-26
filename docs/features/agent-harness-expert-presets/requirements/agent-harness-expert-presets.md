@@ -2,9 +2,9 @@
 
 ## Outcome
 
-Provide a provider-neutral expert catalog for the agent harness. Compose
-Artifact-Driven artifact expertise and configured Polyrepo implementation
-expertise through derived integration modules.
+Provide a provider-neutral expert catalog for the agent harness. The
+Artifact-Polyrepo workspace profile composes Artifact-Driven artifact expertise
+and configured Polyrepo implementation expertise.
 
 The [specification](../specifications/agent-harness-expert-presets.md) defines
 the required interfaces and activation rules.
@@ -18,11 +18,9 @@ the required interfaces and activation rules.
   boundaries.
 - Provide an agent-neutral ASD-STE100 writing skill for project documentation.
 - Select the ASD-STE100 writing skill for the Artifact-Driven scope expert.
-- Derive Artifact-Driven and Polyrepo agent integration state from their
-  participating models and the enabled harness.
-- Do not provide a user-set integration enable option.
-- Configure Polyrepo implementation experts only through
-  `workspace.integration.polyrepo-agent.implementationExperts`.
+- Let the selected workspace composition profile own combined expert behavior.
+- Configure Polyrepo implementation experts through
+  `workspace.blueprint.polyrepo.implementationExperts`.
 - Require every Polyrepo implementation expert to have a bounded area.
 - Remove the preset modules and the obsolete
   `workspace.agent.expert.polyrepo.implementationExperts` option.
@@ -31,10 +29,10 @@ the required interfaces and activation rules.
 
 ## Acceptance Criteria
 
-- Artifact-Driven and agent integration supplies scope and technical experts
+- The Artifact-Polyrepo profile supplies scope and technical experts
   plus shared workflow skills, including on-demand semantic artifact review.
 - The Artifact-Driven scope expert selects the ASD-STE100 writing skill.
-- Polyrepo and agent integration supplies only explicitly configured
+- The selected profile maps only explicitly configured Polyrepo
   implementation experts.
 - Combined integrations are additive.
 - Generated Codex, Claude Code, and OpenCode assets expose selected experts.

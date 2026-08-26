@@ -52,15 +52,18 @@ dw init \
 ```
 
 Select the five Project values. Copy the generated Project, field, and option
-IDs to `workspace.delivery-workflow` in `devenv.local.nix`.
+IDs to `workspace.composition.deliveryWorkflow` in `devenv.local.nix`. Select
+the Artifact-Polyrepo Workspace profile at the same level.
 
 For a user-owned Project, set `authorizerUsers`. For an organization Project,
 you can set `authorizerTeams`.
 
 ## Generate Repository Files
 
-Set `workspace.documentation.model = "artifact-driven"` and
-`workspace.delivery-workflow.enable = true`. The delivery option seeds:
+Set `workspace.composition.use = "artifact-polyrepo-workspace"` and
+`workspace.composition.deliveryWorkflow.enable = true`. The profile owns the
+effective Delivery Workflow settings and requires enabled Git hooks. The option
+seeds:
 
 - `.dw/config.yaml`
 - `.github/workflows/dw-validate.yml`
@@ -78,13 +81,16 @@ in-scope PRs.
 
 ## Use the Workflow
 
-For phases 1–3, create or reuse the Draft ticket first. The command records
-the canonical ticket URL in the artifact `delivery.ticket` front matter. Then
-register the PR.
+For Phase 1, list eligible assignees and create the Requirement ticket with
+one to ten selected requirement owners. For the next phases, hand off only a
+Ready predecessor. The Phase 2 assignee is the technical lead. The Phase 3
+assignees are the builders.
 
 ```text
-dw draft --phase requirement --title "Requirement title" --artifact PATH
-dw register --pr PR_NUMBER --phase requirement --artifact PATH
+dw assignees
+dw draft --phase requirement --title "Requirement title" --artifact PATH --assignee OWNER
+dw handoff --predecessor ISSUE_OR_URL --phase specs-adrs --artifact PATH --assignee TECHNICAL_LEAD
+dw handoff --predecessor ISSUE_OR_URL --phase tasks-plan --artifact PATH --assignee BUILDER
 ```
 
 For implementation, start the ticket before you register the implementation
@@ -94,6 +100,9 @@ PR.
 dw start --issue ISSUE_NUMBER
 dw register --pr PR_NUMBER --issue ISSUE_NUMBER --phase implementation
 ```
+
+`dw start` reuses the builders assigned to the accepted Ready task ticket. It
+does not accept or change assignees.
 
 An accepted implementation merge moves the ticket to the configured
 implementation-acceptance value. Testing, QA, UAT, and release validation can

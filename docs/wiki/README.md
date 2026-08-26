@@ -16,3 +16,7 @@ This directory contains system-wide knowledge and governance.
 ## Guides
 
 - [GitHub Delivery Workflow Setup](guides/delivery-workflow-github.md)
+
+## Architecture
+
+- [Workspace Composition Profiles](architecture/composition-profiles.md)

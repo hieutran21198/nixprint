@@ -7,13 +7,7 @@
 let
   inherit (config.${namespace}) utils;
   cfg = config.${namespace}.agent.harness;
-
-  clientModule = lib.types.submodule {
-    options.enable = utils.mkBoolOpt {
-      default = false;
-      description = "Enable this AI-agent client for the project";
-    };
-  };
+  harnessOptions = import ./options.nix { inherit lib utils; };
 
   enabledClient = name: cfg.enable && cfg.clients.${name}.enable;
   enabledAnyClient = lib.any enabledClient [
@@ -107,30 +101,7 @@ let
   );
 in
 {
-  options.${namespace}.agent.harness = {
-    enable = utils.mkBoolOpt {
-      default = false;
-      description = "Enable project AI-agent harness configuration";
-    };
-
-    clients = {
-      codex = lib.mkOption {
-        type = clientModule;
-        default = { };
-        description = "Codex project client configuration";
-      };
-      claude = lib.mkOption {
-        type = clientModule;
-        default = { };
-        description = "Claude Code project client configuration";
-      };
-      opencode = lib.mkOption {
-        type = clientModule;
-        default = { };
-        description = "OpenCode project client configuration";
-      };
-    };
-
+  options.${namespace}.agent.harness = harnessOptions.configurationOptions // {
     build = {
       enabled = utils.mkBoolOpt {
         readOnly = true;

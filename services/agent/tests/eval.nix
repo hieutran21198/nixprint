@@ -129,62 +129,23 @@ let
     };
   };
 
-  artifactOnly = evaluate {
-    workspace.documentation.model = "artifact-driven";
-    workspace.agent.harness = {
-      enable = true;
-      clients.codex.enable = true;
-    };
+  profileBase = evaluate {
+    workspace.composition.use = "artifact-polyrepo-workspace";
   };
 
-  artifactWithoutHarness = evaluate {
-    workspace.documentation.model = "artifact-driven";
-  };
-
-  artifactDeliveryWithoutHarness = evaluate {
-    workspace.documentation.model = "artifact-driven";
-    workspace.delivery-workflow = deliveryWorkflow;
-  };
-
-  artifactDeliveryWithHarness = evaluate {
-    workspace.documentation.model = "artifact-driven";
-    workspace.delivery-workflow = deliveryWorkflow;
-    workspace.agent.harness = {
-      enable = true;
-      clients.codex.enable = true;
-    };
-  };
-
-  invalidDeliveryWorkflow = evaluate {
-    workspace.delivery-workflow = deliveryWorkflow;
-  };
-
-  polyrepoOnly = evaluate {
-    workspace.blueprint.use = "polyrepo";
-    workspace.agent.harness = {
-      enable = true;
-      clients.claude.enable = true;
-    };
-    workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
-      description = "Implement bounded changes in the agent service";
-      implementationArea = "services/agent/harness";
-      persistentInstructions = "Change only services/agent and report its validation evidence.";
-      defaultSkills = [ "nix-module" ];
-    };
-  };
-
-  combined = evaluate {
-    workspace.documentation.model = "artifact-driven";
-    workspace.blueprint.use = "polyrepo";
-    workspace.agent.harness = {
-      enable = true;
-      clients = {
-        codex.enable = true;
-        claude.enable = true;
-        opencode.enable = true;
+  profileAgent = evaluate {
+    workspace.composition = {
+      use = "artifact-polyrepo-workspace";
+      agent = {
+        enable = true;
+        clients = {
+          codex.enable = true;
+          claude.enable = true;
+          opencode.enable = true;
+        };
       };
     };
-    workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
+    workspace.blueprint.polyrepo.implementationExperts.agent-service = {
       description = "Implement bounded changes in the agent service";
       repository = "services/agent";
       persistentInstructions = "Change only services/agent and report its validation evidence.";
@@ -192,45 +153,104 @@ let
     };
   };
 
-  unboundedPolyrepo = evaluate {
+  profileDeliveryWithoutAgent = evaluate {
+    workspace.composition = {
+      use = "artifact-polyrepo-workspace";
+      deliveryWorkflow = deliveryWorkflow;
+    };
+  };
+
+  profileDeliveryWithAgent = evaluate {
+    workspace.composition = {
+      use = "artifact-polyrepo-workspace";
+      agent = {
+        enable = true;
+        clients.codex.enable = true;
+      };
+      deliveryWorkflow = deliveryWorkflow;
+    };
+  };
+
+  profileOverridesDirectEnabledAgent = evaluate {
+    workspace.agent.harness = {
+      enable = true;
+      clients.codex.enable = true;
+    };
+    workspace.composition.use = "artifact-polyrepo-workspace";
+  };
+
+  profileOverridesDirectDisabledAgent = evaluate {
+    workspace.agent.harness.enable = false;
+    workspace.composition = {
+      use = "artifact-polyrepo-workspace";
+      agent = {
+        enable = true;
+        clients.codex.enable = true;
+      };
+    };
+  };
+
+  profileOverridesDirectDelivery = evaluate {
+    workspace.delivery-workflow = deliveryWorkflow;
+    workspace.composition.use = "artifact-polyrepo-workspace";
+  };
+
+  profileOverridesDirectTopology = evaluate {
+    workspace.documentation.model = "unset";
+    workspace.blueprint.use = "unset";
+    workspace.composition.use = "artifact-polyrepo-workspace";
+  };
+
+  profileAgentWithoutClient = evaluate {
+    workspace.composition = {
+      use = "artifact-polyrepo-workspace";
+      agent.enable = true;
+    };
+  };
+
+  profileDeliveryWithoutGit = evaluate {
+    workspace.git.hooks.enable = false;
+    workspace.composition = {
+      use = "artifact-polyrepo-workspace";
+      deliveryWorkflow = deliveryWorkflow;
+    };
+  };
+
+  directConfiguration = evaluate {
+    workspace.documentation.model = "artifact-driven";
     workspace.blueprint.use = "polyrepo";
     workspace.agent.harness = {
       enable = true;
       clients.codex.enable = true;
     };
-    workspace.integration.polyrepo-agent.implementationExperts.unbounded = {
+    workspace.delivery-workflow = deliveryWorkflow;
+  };
+
+  unboundedPolyrepo = evaluate {
+    workspace.blueprint.use = "polyrepo";
+    workspace.blueprint.polyrepo.implementationExperts.unbounded = {
       description = "Invalid Polyrepo implementation expert";
       persistentInstructions = "This declaration must fail validation.";
     };
   };
 
   outsidePolyrepo = evaluate {
-    workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
+    workspace.blueprint.polyrepo.implementationExperts.agent-service = {
       description = "Invalid Polyrepo implementation expert";
       repository = "services/agent";
       persistentInstructions = "This declaration must fail validation.";
     };
   };
 
-  legacyPolyrepoOption = builtins.tryEval (
+  legacyIntegrationOption = builtins.tryEval (
     (evaluate {
-      workspace.agent.expert.polyrepo.implementationExperts.agent-service = {
-        description = "Obsolete Polyrepo implementation expert";
+      workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
+        description = "Obsolete integration declaration";
         repository = "services/agent";
         persistentInstructions = "This declaration must fail evaluation.";
       };
     }).workspace.agent.expert.experts
   );
-
-  polyrepoWithoutHarness = evaluate {
-    workspace.blueprint.use = "polyrepo";
-    workspace.integration.polyrepo-agent.implementationExperts.agent-service = {
-      description = "Implement bounded changes in the agent service";
-      repository = "services/agent";
-      persistentInstructions = "Change only services/agent and report its validation evidence.";
-      defaultSkills = [ "nix-module" ];
-    };
-  };
 
   codexOnly = evaluate {
     workspace.agent = {
@@ -277,60 +297,57 @@ assert lib.hasInfix "name: \"asd-ste100-writing\""
 assert full.files."CLAUDE.md".text == "@AGENTS.md\n";
 assert full.env.DOCUMENTATION_TOKEN == "test-token";
 assert !(lib.hasInfix "test-token" (builtins.toJSON full.files));
-assert artifactOnly.workspace.agent.expert.experts ? scope-expert;
-assert artifactOnly.workspace.agent.expert.experts ? technical-expert;
-assert artifactOnly.workspace.agent.skill.skills ? semantic-artifact-review;
+assert profileBase.workspace.composition.artifactPolyrepoWorkspace.build.enabled;
+assert profileBase.workspace.documentation.model == "artifact-driven";
+assert profileBase.workspace.blueprint.use == "polyrepo";
+assert profileBase.workspace.file.".".entries ? "AGENTS.md";
+assert profileBase.workspace.file.".".entries ? "README.md";
+assert !profileBase.workspace.agent.harness.build.enabled;
+assert !(profileBase.workspace.agent.expert.experts ? scope-expert);
+assert profileAgent.workspace.agent.expert.experts ? scope-expert;
+assert profileAgent.workspace.agent.expert.experts ? technical-expert;
+assert profileAgent.workspace.agent.expert.experts ? agent-service;
+assert profileAgent.workspace.agent.skill.skills ? semantic-artifact-review;
 assert lib.elem "asd-ste100-writing"
-  artifactOnly.workspace.agent.expert.experts.scope-expert.defaultSkills;
-assert artifactOnly.workspace.integration.artifact-driven-agent.build.enabled;
-assert !(artifactWithoutHarness.workspace.agent.expert.experts ? scope-expert);
-assert !(artifactWithoutHarness.workspace.agent.skill.skills ? semantic-artifact-review);
-assert !artifactWithoutHarness.workspace.integration.artifact-driven-agent.build.enabled;
-assert !artifactOnly.workspace.integration.artifact-driven-delivery-workflow.build.enabled;
-assert
-  artifactDeliveryWithoutHarness.workspace.integration.artifact-driven-delivery-workflow.build.enabled;
-assert !(artifactDeliveryWithoutHarness.workspace.agent.expert.experts ? scope-expert);
-assert !artifactDeliveryWithoutHarness.workspace.integration.artifact-driven-agent.build.enabled;
-assert artifactDeliveryWithoutHarness.files ? ".dw/config.yaml";
-assert artifactDeliveryWithoutHarness.files ? ".github/workflows/dw-validate.yml";
-assert artifactDeliveryWithoutHarness.files ? ".github/workflows/dw-transition.yml";
-assert artifactDeliveryWithoutHarness.files ? ".github/workflows/dw-reconcile.yml";
-assert
-  artifactDeliveryWithHarness.workspace.integration.artifact-driven-delivery-workflow.build.enabled;
-assert artifactDeliveryWithHarness.workspace.agent.skill.skills ? delivery-workflow;
-assert lib.hasInfix "delivery-workflow"
-  artifactDeliveryWithHarness.files.".codex/agents/scope-expert.toml".toml.developer_instructions;
-assert lib.hasInfix "delivery.ticket front matter"
-  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "dw assignees"
-  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "requirement owner"
-  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "Phase-1-to-Phase-2 handoff"
-  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "tasks-plan"
-  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert !(lib.all (entry: entry.assertion) invalidDeliveryWorkflow.assertions);
-assert polyrepoOnly.workspace.agent.expert.experts ? agent-service;
-assert !(polyrepoOnly.workspace.agent.expert.experts ? scope-expert);
-assert polyrepoOnly.workspace.integration.polyrepo-agent.build.enabled;
-assert !(polyrepoWithoutHarness.workspace.agent.expert.experts ? agent-service);
-assert !polyrepoWithoutHarness.workspace.integration.polyrepo-agent.build.enabled;
-assert combined.workspace.agent.expert.experts ? scope-expert;
-assert combined.workspace.agent.expert.experts ? technical-expert;
-assert combined.workspace.agent.expert.experts ? agent-service;
-assert combined.workspace.integration.artifact-driven-agent.build.enabled;
-assert combined.workspace.integration.polyrepo-agent.build.enabled;
-assert combined.files.".codex/agents/scope-expert.toml".toml.name == "scope-expert";
+  profileAgent.workspace.agent.expert.experts.scope-expert.defaultSkills;
+assert profileAgent.files.".codex/agents/scope-expert.toml".toml.name == "scope-expert";
 assert lib.hasInfix
   "skills: [\"artifact-driven-authoring\",\"asd-ste100-writing\",\"artifact-driven-coordination\"]"
-  combined.files.".claude/agents/scope-expert.md".text;
+  profileAgent.files.".claude/agents/scope-expert.md".text;
 assert lib.hasInfix "Default workflow skills: nix-module."
-  combined.files.".opencode/agents/agent-service.md".text;
-assert combined.files."CLAUDE.md".text == "@AGENTS.md\n";
+  profileAgent.files.".opencode/agents/agent-service.md".text;
+assert profileDeliveryWithoutAgent.files ? ".dw/config.yaml";
+assert profileDeliveryWithoutAgent.files ? ".github/workflows/dw-validate.yml";
+assert !(profileDeliveryWithoutAgent.workspace.agent.skill.skills ? delivery-workflow);
+assert profileDeliveryWithAgent.workspace.agent.skill.skills ? delivery-workflow;
+assert lib.hasInfix "delivery-workflow"
+  profileDeliveryWithAgent.files.".codex/agents/scope-expert.toml".toml.developer_instructions;
+assert lib.hasInfix "delivery.ticket front matter"
+  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert lib.hasInfix "dw assignees"
+  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert lib.hasInfix "requirement owner"
+  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert lib.hasInfix "Phase-1-to-Phase-2 handoff"
+  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert lib.hasInfix "tasks-plan"
+  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert !profileOverridesDirectEnabledAgent.workspace.agent.harness.enable;
+assert !profileOverridesDirectEnabledAgent.workspace.agent.harness.build.enabled;
+assert profileOverridesDirectDisabledAgent.workspace.agent.harness.build.enabled;
+assert !profileOverridesDirectDelivery.workspace.delivery-workflow.enable;
+assert !(profileOverridesDirectDelivery.files ? ".dw/config.yaml");
+assert profileOverridesDirectTopology.workspace.documentation.model == "artifact-driven";
+assert profileOverridesDirectTopology.workspace.blueprint.use == "polyrepo";
+assert !(lib.all (entry: entry.assertion) profileAgentWithoutClient.assertions);
+assert !(lib.all (entry: entry.assertion) profileDeliveryWithoutGit.assertions);
+assert directConfiguration.workspace.composition.use == "unset";
+assert directConfiguration.workspace.agent.harness.build.enabled;
+assert directConfiguration.workspace.delivery-workflow.build.enabled;
+assert !(directConfiguration.workspace.agent.expert.experts ? scope-expert);
 assert !(lib.all (entry: entry.assertion) unboundedPolyrepo.assertions);
 assert !(lib.all (entry: entry.assertion) outsidePolyrepo.assertions);
-assert !legacyPolyrepoOption.success;
+assert !legacyIntegrationOption.success;
 assert !(codexOnly.files ? ".mcp.json");
 assert !(codexOnly.files ? ".claude/agents/reviewer.md");
 assert !(codexOnly.files ? ".opencode/agents/reviewer.md");

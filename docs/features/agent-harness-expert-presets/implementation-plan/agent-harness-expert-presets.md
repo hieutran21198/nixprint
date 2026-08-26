@@ -8,19 +8,16 @@ This plan implements the
 1. Add the built-in ASD-STE100 writing skill to the agent service.
 2. Select the skill for Artifact-Driven documentation scope work and local Nix
    expertise that can change agent instructions.
-3. Add derived Artifact-Driven and Polyrepo agent integration modules.
-4. Move automatic Artifact-Driven experts and skills into the Artifact-Driven
-   and agent integration.
+3. Add the Artifact-Polyrepo workspace composition profile.
+4. Move automatic Artifact-Driven experts and skills into the profile.
 5. Move bounded Polyrepo implementation expert configuration into the
-   Polyrepo and agent integration.
+   Polyrepo blueprint and map it from the profile.
 6. Remove the preset modules and obsolete public option.
 7. Update documentation and run deterministic Nix evaluation checks.
 
 ## Dependencies
 
-- Artifact-Driven Documentation model for the Artifact-Driven and agent
-  integration.
-- Polyrepo blueprint for the Polyrepo and agent integration.
+- Artifact-Driven Documentation model and Polyrepo blueprint for the profile.
 - The agent harness and at least one selected client for generated assets.
 
 ## Risks
@@ -33,7 +30,7 @@ This plan implements the
 
 ## Verification
 
-Evaluate Artifact-Driven-only, Polyrepo-only, combined, disabled-harness,
-unbounded-Polyrepo, and outside-Polyrepo configurations. Check derived
-integration markers, native expert assets, the Claude bridge, client selection,
-MCP secret references, and absence of secret values.
+Evaluate the selected profile, unset direct configuration, disabled harness,
+unbounded-Polyrepo, and outside-Polyrepo configurations. Check native expert
+assets, the Claude bridge, client selection, MCP secret references, and absence
+of secret values.

@@ -20,13 +20,12 @@ The skill applies ASD-STE100 principles to new or changed project
 documentation. It is available to every enabled harness. The Artifact-Driven
 scope expert selects it by default.
 
-## Integration Activation
+## Composition Activation
 
-`workspace.integration.artifact-driven-agent.build.enabled` is read-only. It
-is enabled only when `workspace.documentation.model == "artifact-driven"` and
-the harness has an enabled client. The integration contributes `scope-expert`,
+The `artifact-polyrepo-workspace` profile contributes `scope-expert`,
 `technical-expert`, coordinator guidance, authoring guidance, technical review
-guidance, and `semantic-artifact-review`.
+guidance, and `semantic-artifact-review` when its Agent Harness configuration
+has an enabled client.
 
 The coordinator identifies the authoritative artifact context, delegates only
 bounded scopes, escalates authority conflicts, and collects validation
@@ -34,16 +33,14 @@ evidence. Scope authority accepts requirements. Technical authority owns
 technical correctness of decisions and specifications. The coordinator never
 accepts artifacts or resolves authority conflicts.
 
-`workspace.integration.polyrepo-agent.build.enabled` is read-only. It is
-enabled only when the Polyrepo blueprint and the harness have an enabled client.
-`workspace.integration.polyrepo-agent.implementationExperts.<id>` requires a
+`workspace.blueprint.polyrepo.implementationExperts.<id>` requires a
 description, persistent instructions, default skills, and either `repository`
 or `implementationArea`. A declaration outside the Polyrepo blueprint fails
-evaluation. The integration does not infer experts from repositories or
+evaluation. The profile does not infer experts from repositories or
 generate category and product combinations.
 
-Neither integration has a user-set enable option. The Polyrepo implementation
-expert collection is the only user-configured integration option. The obsolete
+The profile has no separate enable option. Select it with
+`workspace.composition.use`. The obsolete
 `workspace.agent.expert.polyrepo.implementationExperts` option does not exist.
 
 ## Ownership Boundaries

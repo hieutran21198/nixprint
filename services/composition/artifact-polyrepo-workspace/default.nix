@@ -1,0 +1,182 @@
+{
+  config,
+  namespace,
+  lib,
+  ...
+}:
+let
+  inherit (config.${namespace}) utils;
+  cfg = config.${namespace}.composition;
+  profileEnabled = cfg.use == "artifact-polyrepo-workspace";
+  agentEnabled = cfg.agent.enable;
+  deliveryWorkflowEnabled = cfg.deliveryWorkflow.enable;
+  harness = config.${namespace}.agent.harness;
+  polyrepo = config.${namespace}.blueprint.polyrepo;
+
+  enabledAnyClient = lib.any (client: client.enable) [
+    cfg.agent.clients.codex
+    cfg.agent.clients.claude
+    cfg.agent.clients.opencode
+  ];
+
+  implementationExpert = _: expert: {
+    inherit (expert) description persistentInstructions defaultSkills;
+  };
+
+  deliveryGuidanceEnabled = harness.build.enabled && deliveryWorkflowEnabled;
+
+  scopeExpert = {
+    description = "Resolve the authoritative documentation scope and requirement acceptance boundary";
+    persistentInstructions = ''
+      Identify the cohesive change scope and the authoritative documentation before work starts.
+      Scope authority accepts requirements and resolves documentation authority conflicts.
+      Keep feature records in docs/features/<scope-id>/ and shared knowledge in docs/wiki/ or docs/glossary/.
+      Do not decide technical correctness or implementation acceptance.
+      Escalate a conflict between authoritative documents to the responsible scope owner.
+    ''
+    + lib.optionalString deliveryGuidanceEnabled ''
+      For an active delivery workflow, use the full phase flow: correlate the requirement, specification or ADR, and task or plan artifacts with one ticket before review; register the review unit; start the task ticket before implementation; and verify the accepted merge or explicit rejection outcome.
+    '';
+    defaultSkills = [
+      "artifact-driven-authoring"
+      "asd-ste100-writing"
+      "artifact-driven-coordination"
+    ]
+    ++ lib.optional deliveryGuidanceEnabled "delivery-workflow";
+  };
+
+  technicalExpert = {
+    description = "Assess technical correctness of decisions and specifications";
+    persistentInstructions = ''
+      Assess technical correctness for decisions and specifications in the accepted documentation scope.
+      State assumptions, interfaces, validation requirements, and implementation constraints clearly.
+      Do not accept requirements, resolve documentation authority conflicts, or accept implementation.
+      Return validation evidence and unresolved technical risks to the coordinator.
+    '';
+    defaultSkills = [
+      "artifact-driven-technical-review"
+      "artifact-driven-coordination"
+    ];
+  };
+in
+{
+  options.${namespace}.composition.artifactPolyrepoWorkspace.build.enabled = utils.mkBoolOpt {
+    readOnly = true;
+    default = profileEnabled;
+    description = "Enable the Artifact-Polyrepo Workspace composition profile";
+  };
+
+  config = lib.mkIf profileEnabled (
+    lib.mkMerge [
+      {
+        assertions = [
+          {
+            assertion = config.${namespace}.documentation.model == "artifact-driven";
+            message = "workspace.composition.artifact-polyrepo-workspace requires Artifact-Driven Documentation";
+          }
+          {
+            assertion = config.${namespace}.blueprint.use == "polyrepo";
+            message = "workspace.composition.artifact-polyrepo-workspace requires the Polyrepo blueprint";
+          }
+          {
+            assertion = !agentEnabled || enabledAnyClient;
+            message = "workspace.composition.agent requires at least one enabled client";
+          }
+          {
+            assertion = !deliveryWorkflowEnabled || config.${namespace}.git.hooks.enable;
+            message = "workspace.composition.deliveryWorkflow requires workspace.git.hooks.enable";
+          }
+        ];
+
+        ${namespace} = {
+          documentation.model = lib.mkOverride 10 "artifact-driven";
+          blueprint.use = lib.mkOverride 10 "polyrepo";
+          agent.harness = lib.mkOverride 10 cfg.agent;
+          delivery-workflow = lib.mkOverride 10 cfg.deliveryWorkflow;
+
+          file."." = {
+            enable = true;
+            entries = {
+              "AGENTS.md" = {
+                enable = true;
+                src = {
+                  path = ./assets/file/AGENTS.md;
+                  copyMode = "seed";
+                };
+              };
+              "README.md" = {
+                enable = true;
+                src = {
+                  path = ./assets/file/README.md;
+                  copyMode = "seed";
+                };
+              };
+            };
+          };
+        };
+      }
+      (lib.mkIf harness.build.enabled {
+        ${namespace}.agent = {
+          expert.experts = {
+            scope-expert = lib.mkDefault scopeExpert;
+            technical-expert = lib.mkDefault technicalExpert;
+          }
+          // lib.mapAttrs implementationExpert polyrepo.implementationExperts;
+
+          skill.skills = {
+            artifact-driven-coordination = lib.mkDefault {
+              description = "Coordinate Artifact-Driven work across explicit authority and implementation scopes";
+              instructions = ''
+                The active primary agent is the coordinator.
+                Identify the relevant authority from accepted artifact context before delegation.
+                Delegate only a bounded, explicit scope to an expert.
+                Do not accept artifacts or resolve authority conflicts. Escalate those matters to the responsible scope owner.
+                Route accepted artifact context to a bounded implementation scope.
+                Collect and report validation evidence from every delegated scope.
+              '';
+            };
+            artifact-driven-authoring = lib.mkDefault {
+              description = "Create and maintain Artifact-Driven documentation in its authoritative location";
+              instructions = ''
+                Start from docs/README.md and the relevant governance documents.
+                Keep requirements, specifications, decisions, tasks, and implementation plans in their distinct feature-document boundaries.
+                Keep shared policy in docs/wiki/ and defined terms in docs/glossary/.
+                Link directly related artifacts with relative descriptive links.
+              '';
+            };
+            artifact-driven-technical-review = lib.mkDefault {
+              description = "Review decisions and specifications for technical correctness and validation coverage";
+              instructions = ''
+                Review technical decisions and specifications against the accepted requirement context.
+                Check interfaces, constraints, failure cases, and verification evidence.
+                Report findings and proposed changes. Do not accept artifacts or change authority boundaries.
+              '';
+            };
+            semantic-artifact-review = lib.mkDefault {
+              description = "On-demand semantic review of an Artifact-Driven documentation artifact";
+              instructions = ''
+                Use this skill only when a semantic artifact review is requested.
+                Check the artifact against its authoritative scope, document boundary, terminology, and direct traceability links.
+                Report evidence-backed findings. This skill does not create a review lifecycle or accept an artifact.
+              '';
+            };
+          }
+          // lib.optionalAttrs deliveryGuidanceEnabled {
+            delivery-workflow = lib.mkDefault {
+              description = "Correlate Artifact-Driven review units with delivery tickets";
+              instructions = ''
+                Use this skill when the Artifact-Polyrepo Workspace composition enables Agent Harness and Delivery Workflow.
+                For Phase 1, ask the workflow operator for the requirement owner. Run dw assignees, show the eligible GitHub usernames, and require one to ten selected usernames. Run dw draft --phase requirement with one --assignee value for each selected username. Do not create a ticket without a valid selection.
+                For the Phase-1-to-Phase-2 handoff, verify that the requirement ticket is Ready. Run dw assignees, show the eligible GitHub usernames, and ask the operator for the technical lead. Run dw handoff --predecessor with phase specs-adrs and one --assignee value for each selected technical lead. The technical lead owns the specification and ADR artifacts.
+                For the Phase-2-to-Phase-3 handoff, verify that the specification ticket is Ready. Run dw assignees, show the eligible GitHub usernames, and ask the operator for one to ten builders. Run dw handoff --predecessor with phase tasks-plan and one --assignee value for each selected builder. The technical lead remains the task-plan artifact owner.
+                For phases 1-3, record the ticket URL in every review artifact under delivery.ticket front matter, then register the review unit on the pull request. Assignment identifies GitHub work responsibility. It does not transfer artifact ownership or acceptance authority.
+                For Phase 4, start the accepted Ready task ticket without a new assignment prompt. It reuses its existing builder assignment. Then register the implementation review unit.
+                Verify the current pull request and ticket state before a transition. An accepted merge advances only the permitted ticket state. Archive phases 1-3 only after an explicit rejection. Keep an implementation ticket In Progress after rejection, close, or rework.
+              '';
+            };
+          };
+        };
+      })
+    ]
+  );
+}

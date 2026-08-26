@@ -6,9 +6,38 @@
 }:
 let
   inherit (config.${namespace}) utils;
+  implementationExpertModule = lib.types.submodule {
+    options = {
+      description = utils.mkStrOpt {
+        description = "When the coordinator should use this implementation expert";
+      };
+      repository = utils.mkStrOpt {
+        default = "";
+        description = "Repository that bounds this implementation expert";
+      };
+      implementationArea = utils.mkStrOpt {
+        default = "";
+        description = "Other bounded implementation area for this expert";
+      };
+      persistentInstructions = utils.mkStrOpt {
+        description = "Persistent implementation instructions for this expert";
+      };
+      defaultSkills = utils.mkListOpt {
+        ofType = lib.types.str;
+        default = [ ];
+        description = "Portable workflow skill preferences for this implementation expert";
+      };
+    };
+  };
 in
 {
   options.${namespace}.blueprint.polyrepo = {
+    implementationExperts = utils.mkAttrsOpt {
+      ofType = implementationExpertModule;
+      default = { };
+      description = "Configured Polyrepo implementation experts";
+    };
+
     file = utils.mkFileEntry {
       default = { };
       description = "Polyrepo file entry";
@@ -27,9 +56,21 @@ in
     let
       inherit (config.${namespace}.blueprint) polyrepo;
       rootGuidanceEnabled = config.${namespace}.documentation.model != "artifact-driven";
+      bounded = expert: expert.repository != "" || expert.implementationArea != "";
+      boundedAssertions = lib.mapAttrsToList (name: expert: {
+        assertion = bounded expert;
+        message = "workspace.blueprint.polyrepo.implementationExperts.${name} requires repository or implementationArea";
+      }) polyrepo.implementationExperts;
     in
-    lib.mkIf polyrepo.build.enabled {
-      ${namespace} = {
+    {
+      assertions =
+        lib.optional (polyrepo.implementationExperts != { }) {
+          assertion = polyrepo.build.enabled;
+          message = "workspace.blueprint.polyrepo.implementationExperts requires the Polyrepo blueprint";
+        }
+        ++ boundedAssertions;
+
+      ${namespace} = lib.mkIf polyrepo.build.enabled {
         blueprint.polyrepo = {
           # setup initial files
           file =
