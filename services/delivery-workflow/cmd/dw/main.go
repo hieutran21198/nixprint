@@ -32,6 +32,10 @@ func run(ctx context.Context, args []string) error {
 		return runInit(ctx, args[1:])
 	case "draft":
 		return runDraft(ctx, args[1:])
+	case "handoff":
+		return runHandoff(ctx, args[1:])
+	case "assignees":
+		return runAssignees(ctx, args[1:])
 	case "start":
 		return runStart(ctx, args[1:])
 	case "register":
@@ -94,10 +98,12 @@ func loadApp() (app.App, error) {
 func runDraft(ctx context.Context, args []string) error {
 	flags := flag.NewFlagSet("draft", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
-	phase := flags.String("phase", "", "requirement, specs-adrs, or tasks-plan")
+	phase := flags.String("phase", "", "requirement")
 	title := flags.String("title", "", "GitHub Issue title")
 	artifacts := stringList{}
 	flags.Var(&artifacts, "artifact", "artifact path; repeat as required")
+	assignees := stringList{}
+	flags.Var(&assignees, "assignee", "GitHub username to assign; repeat one to ten times")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -105,11 +111,54 @@ func runDraft(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	number, err := service.Draft(ctx, workflow.Phase(*phase), *title, artifacts)
+	number, err := service.Draft(ctx, workflow.Phase(*phase), *title, artifacts, assignees)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Created Draft ticket #%d\n", number)
+	return nil
+}
+
+func runHandoff(ctx context.Context, args []string) error {
+	flags := flag.NewFlagSet("handoff", flag.ContinueOnError)
+	flags.SetOutput(os.Stderr)
+	predecessor := flags.Int("predecessor", 0, "accepted predecessor GitHub Issue number")
+	phase := flags.String("phase", "", "specs-adrs or tasks-plan")
+	title := flags.String("title", "", "GitHub Issue title")
+	artifacts := stringList{}
+	flags.Var(&artifacts, "artifact", "artifact path; repeat as required")
+	assignees := stringList{}
+	flags.Var(&assignees, "assignee", "GitHub username to assign; repeat one to ten times")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	service, err := loadApp()
+	if err != nil {
+		return err
+	}
+	number, err := service.Handoff(ctx, *predecessor, workflow.Phase(*phase), *title, artifacts, assignees)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Created Draft ticket #%d\n", number)
+	return nil
+}
+
+func runAssignees(ctx context.Context, args []string) error {
+	if len(args) != 0 {
+		return errors.New("assignees accepts no arguments")
+	}
+	service, err := loadApp()
+	if err != nil {
+		return err
+	}
+	assignees, err := service.Assignees(ctx)
+	if err != nil {
+		return err
+	}
+	for _, assignee := range assignees {
+		fmt.Println(assignee)
+	}
 	return nil
 }
 
@@ -219,7 +268,7 @@ func usage() error {
 
 const usageText = `usage: dw <command>
 
-Commands: init, draft, start, register, validate, transition, reject, reconcile
+Commands: init, assignees, draft, handoff, start, register, validate, transition, reject, reconcile
 `
 
 type stringList []string

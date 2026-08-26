@@ -302,6 +302,14 @@ assert lib.hasInfix "delivery-workflow"
   artifactDeliveryWithHarness.files.".codex/agents/scope-expert.toml".toml.developer_instructions;
 assert lib.hasInfix "delivery.ticket front matter"
   artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert lib.hasInfix "dw assignees"
+  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert lib.hasInfix "requirement owner"
+  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert lib.hasInfix "Phase-1-to-Phase-2 handoff"
+  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
+assert lib.hasInfix "tasks-plan"
+  artifactDeliveryWithHarness.files.".agents/skills/delivery-workflow/SKILL.md".text;
 assert !(lib.all (entry: entry.assertion) invalidDeliveryWorkflow.assertions);
 assert polyrepoOnly.workspace.agent.expert.experts ? agent-service;
 assert !(polyrepoOnly.workspace.agent.expert.experts ? scope-expert);

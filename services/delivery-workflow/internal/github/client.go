@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/cirius/delivery-workflow/internal/config"
@@ -38,6 +39,17 @@ type PullRequest struct {
 type ProjectItem struct {
 	ID       string
 	StatusID string
+}
+
+// Issue contains the GitHub Issue fields used by the delivery workflow.
+type Issue struct {
+	Number    int    `json:"number"`
+	NodeID    string `json:"node_id"`
+	HTMLURL   string `json:"html_url"`
+	Body      string `json:"body"`
+	Assignees []struct {
+		Login string `json:"login"`
+	} `json:"assignees"`
 }
 
 func New(token string) (*Client, error) {
@@ -173,23 +185,100 @@ func (c *Client) DiscoverProject(ctx context.Context, ownerType, owner string, n
 	return "", "", nil, fmt.Errorf("Project status field %q was not found", statusField)
 }
 
-func (c *Client) CreateIssue(ctx context.Context, repository, title, body string) (int, string, error) {
-	var issue struct {
-		Number  int    `json:"number"`
-		NodeID  string `json:"node_id"`
-		HTMLURL string `json:"html_url"`
+func (c *Client) CreateIssue(ctx context.Context, repository, title, body string, assignees []string) (int, string, []string, error) {
+	input := map[string]any{"title": title, "body": body}
+	if len(assignees) != 0 {
+		input["assignees"] = assignees
 	}
-	if err := c.request(ctx, http.MethodPost, "/repos/"+repository+"/issues", map[string]string{"title": title, "body": body}, &issue); err != nil {
-		return 0, "", err
+	var result Issue
+	if err := c.request(ctx, http.MethodPost, "/repos/"+repository+"/issues", input, &result); err != nil {
+		return 0, "", nil, err
 	}
-	return issue.Number, issue.HTMLURL, nil
+	return result.Number, result.HTMLURL, IssueAssignees(result), nil
+}
+
+// GetIssue reads a ticket and its GitHub Issue collaborators.
+func (c *Client) GetIssue(ctx context.Context, repository string, number int) (Issue, error) {
+	var result Issue
+	path := fmt.Sprintf("/repos/%s/issues/%d", repository, number)
+	if err := c.request(ctx, http.MethodGet, path, nil, &result); err != nil {
+		return Issue{}, err
+	}
+	return result, nil
+}
+
+// ListIssues reads all repository Issues. GitHub pull-request items are also
+// returned by this endpoint; callers must ignore records that do not contain a
+// delivery ticket record.
+func (c *Client) ListIssues(ctx context.Context, repository string) ([]Issue, error) {
+	var issues []Issue
+	for page := 1; ; page++ {
+		var results []Issue
+		path := fmt.Sprintf("/repos/%s/issues?state=all&per_page=100&page=%d", repository, page)
+		if err := c.request(ctx, http.MethodGet, path, nil, &results); err != nil {
+			return nil, err
+		}
+		issues = append(issues, results...)
+		if len(results) < 100 {
+			return issues, nil
+		}
+	}
+}
+
+// ListAssignees returns every GitHub user that can be assigned to an Issue in
+// the configured repository.
+func (c *Client) ListAssignees(ctx context.Context, repository string) ([]string, error) {
+	assignees := map[string]string{}
+	for page := 1; ; page++ {
+		var results []struct {
+			Login string `json:"login"`
+		}
+		path := fmt.Sprintf("/repos/%s/assignees?per_page=100&page=%d", repository, page)
+		if err := c.request(ctx, http.MethodGet, path, nil, &results); err != nil {
+			return nil, err
+		}
+		for _, result := range results {
+			if result.Login != "" {
+				assignees[strings.ToLower(result.Login)] = result.Login
+			}
+		}
+		if len(results) < 100 {
+			break
+		}
+	}
+	values := make([]string, 0, len(assignees))
+	for _, login := range assignees {
+		values = append(values, login)
+	}
+	sort.Slice(values, func(left, right int) bool {
+		return strings.ToLower(values[left]) < strings.ToLower(values[right])
+	})
+	return values, nil
+}
+
+// AddAssignees adds users to an Issue without removing existing assignees.
+func (c *Client) AddAssignees(ctx context.Context, repository string, number int, assignees []string) ([]string, error) {
+	var result Issue
+	path := fmt.Sprintf("/repos/%s/issues/%d/assignees", repository, number)
+	if err := c.request(ctx, http.MethodPost, path, map[string]any{"assignees": assignees}, &result); err != nil {
+		return nil, err
+	}
+	return IssueAssignees(result), nil
+}
+
+func IssueAssignees(value Issue) []string {
+	assignees := make([]string, 0, len(value.Assignees))
+	for _, assignee := range value.Assignees {
+		if assignee.Login != "" {
+			assignees = append(assignees, assignee.Login)
+		}
+	}
+	return assignees
 }
 
 func (c *Client) IssueNodeID(ctx context.Context, repository string, number int) (string, error) {
-	var issue struct {
-		NodeID string `json:"node_id"`
-	}
-	if err := c.request(ctx, http.MethodGet, fmt.Sprintf("/repos/%s/issues/%d", repository, number), nil, &issue); err != nil {
+	issue, err := c.GetIssue(ctx, repository, number)
+	if err != nil {
 		return "", err
 	}
 	return issue.NodeID, nil

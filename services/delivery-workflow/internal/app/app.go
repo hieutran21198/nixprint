@@ -85,18 +85,35 @@ func Init(ctx context.Context, client *github.Client, path, repository, ownerTyp
 	return nil
 }
 
-func (a App) Draft(ctx context.Context, phase workflow.Phase, title string, artifacts []string) (int, error) {
-	if !phase.Documentation() {
-		return 0, errors.New("dw draft supports phases 1-3 only")
+func (a App) Draft(ctx context.Context, phase workflow.Phase, title string, artifacts, assignees []string) (int, error) {
+	if phase != workflow.Requirement {
+		return 0, errors.New("dw draft supports only the root requirement phase")
 	}
 	if len(artifacts) == 0 {
 		return 0, errors.New("at least one artifact path is required")
+	}
+	assignees, err := requiredAssignees(assignees)
+	if err != nil {
+		return 0, err
+	}
+	if err := a.validateAssignees(ctx, assignees); err != nil {
+		return 0, err
 	}
 	ticketURL, ticketNumber, found, _, err := a.artifactTicket(artifacts)
 	if err != nil {
 		return 0, err
 	}
 	if found {
+		issue, issueErr := a.GitHub.GetIssue(ctx, a.Config.GitHub.Repository, ticketNumber)
+		if issueErr != nil {
+			return 0, issueErr
+		}
+		if err := rootTicketRecord(issue.Body); err != nil {
+			return 0, fmt.Errorf("ticket %s cannot be reused as a root requirement ticket: %w", ticketURL, err)
+		}
+		if err := a.ensureAssignees(ctx, ticketNumber, ticketURL, assignees); err != nil {
+			return 0, err
+		}
 		if err := a.writeArtifactTickets(artifacts, ticketURL); err != nil {
 			return 0, err
 		}
@@ -105,34 +122,8 @@ func (a App) Draft(ctx context.Context, phase workflow.Phase, title string, arti
 	if title == "" {
 		return 0, errors.New("issue title is required when creating a ticket")
 	}
-	body := fmt.Sprintf("<!-- dw:ticket\nversion: 1\nphase: %s\nartifacts:\n", phase)
-	for _, artifact := range artifacts {
-		body += "  - " + artifact + "\n"
-	}
-	body += "-->\n\nThis ticket tracks an Artifact-Driven Development review unit."
-	number, ticketURL, err := a.GitHub.CreateIssue(ctx, a.Config.GitHub.Repository, title, body)
+	number, ticketURL, err := a.createDraftTicket(ctx, title, workflow.TicketRecord{Version: 1, Phase: phase, Artifacts: artifacts}, assignees)
 	if err != nil {
-		return 0, err
-	}
-	returnedTicketNumber, err := a.ticketNumber(ticketURL)
-	if err != nil {
-		return 0, fmt.Errorf("GitHub returned an invalid ticket URL: %w", err)
-	}
-	if returnedTicketNumber != number {
-		return 0, errors.New("GitHub returned a ticket URL for a different issue")
-	}
-	nodeID, err := a.GitHub.IssueNodeID(ctx, a.Config.GitHub.Repository, number)
-	if err != nil {
-		return 0, err
-	}
-	itemID, err := a.GitHub.AddProjectItem(ctx, a.Config.GitHub.Project.ID, nodeID)
-	if err != nil {
-		return 0, err
-	}
-	if err := a.GitHub.UpdateStatus(ctx, a.Config, itemID, a.Config.States.Draft.ID); err != nil {
-		return 0, err
-	}
-	if err := a.audit(ctx, number, workflow.AuditMarker(0, "draft")+"\nDraft ticket synchronized."); err != nil {
 		return 0, err
 	}
 	if err := a.writeArtifactTickets(artifacts, ticketURL); err != nil {
@@ -141,8 +132,306 @@ func (a App) Draft(ctx context.Context, phase workflow.Phase, title string, arti
 	return number, nil
 }
 
+func (a App) Assignees(ctx context.Context) ([]string, error) {
+	return a.GitHub.ListAssignees(ctx, a.Config.GitHub.Repository)
+}
+
+// Handoff creates or safely reuses the next documentation-phase ticket.
+func (a App) Handoff(ctx context.Context, predecessor int, phase workflow.Phase, title string, artifacts, assignees []string) (int, error) {
+	if predecessor < 1 {
+		return 0, errors.New("predecessor issue is required")
+	}
+	if expectedPredecessor, ok := handoffPredecessor(phase); !ok {
+		return 0, errors.New("dw handoff supports requirement-to-specs-adrs and specs-adrs-to-tasks-plan only")
+	} else if len(artifacts) == 0 {
+		return 0, errors.New("at least one artifact path is required")
+	} else {
+		assignees, err := requiredAssignees(assignees)
+		if err != nil {
+			return 0, err
+		}
+		if err := a.validateAssignees(ctx, assignees); err != nil {
+			return 0, err
+		}
+		parent, err := a.GitHub.GetIssue(ctx, a.Config.GitHub.Repository, predecessor)
+		if err != nil {
+			return 0, err
+		}
+		parentRecord, err := workflow.ParseTicket(parent.Body)
+		if err != nil {
+			return 0, fmt.Errorf("predecessor ticket #%d has an invalid delivery record: %w", predecessor, err)
+		}
+		if parentRecord.Phase != expectedPredecessor {
+			return 0, fmt.Errorf("predecessor ticket #%d has phase %q; handoff to %q requires %q", predecessor, parentRecord.Phase, phase, expectedPredecessor)
+		}
+		if err := a.requireReady(ctx, predecessor, parent); err != nil {
+			return 0, err
+		}
+		parentURL, err := a.canonicalTicketURL(predecessor)
+		if err != nil {
+			return 0, err
+		}
+		foundURL, foundNumber, found, _, err := a.artifactTicket(artifacts)
+		if err != nil {
+			return 0, err
+		}
+		children, err := a.linkedChildren(ctx, parentURL, expectedPredecessor)
+		if err != nil {
+			return 0, err
+		}
+		var child *github.Issue
+		for index := range children {
+			record, parseErr := workflow.ParseTicket(children[index].Body)
+			if parseErr != nil {
+				return 0, parseErr
+			}
+			if record.Phase != phase {
+				return 0, fmt.Errorf("predecessor ticket #%d already links to ticket #%d for phase %q", predecessor, children[index].Number, record.Phase)
+			}
+			if child != nil {
+				return 0, fmt.Errorf("predecessor ticket #%d links to more than one %q ticket", predecessor, phase)
+			}
+			child = &children[index]
+		}
+		if found {
+			issue, issueErr := a.GitHub.GetIssue(ctx, a.Config.GitHub.Repository, foundNumber)
+			if issueErr != nil {
+				return 0, issueErr
+			}
+			if err := childRecordMatches(issue.Body, phase, parentURL, expectedPredecessor); err != nil {
+				return 0, fmt.Errorf("ticket %s cannot be reused for this handoff: %w", foundURL, err)
+			}
+			if child != nil && child.Number != foundNumber {
+				return 0, fmt.Errorf("predecessor ticket #%d already links to ticket #%d", predecessor, child.Number)
+			}
+			child = &issue
+		}
+		if child != nil {
+			childURL, urlErr := a.canonicalTicketURL(child.Number)
+			if urlErr != nil {
+				return 0, urlErr
+			}
+			if err := a.ensureAssignees(ctx, child.Number, childURL, assignees); err != nil {
+				return 0, err
+			}
+			if err := a.writeArtifactTickets(artifacts, childURL); err != nil {
+				return 0, err
+			}
+			return child.Number, nil
+		}
+		if title == "" {
+			return 0, errors.New("issue title is required when creating a handoff ticket")
+		}
+		record := workflow.TicketRecord{Version: 1, Phase: phase, Artifacts: artifacts, Predecessor: &workflow.TicketLink{URL: parentURL, Phase: expectedPredecessor}}
+		number, ticketURL, err := a.createDraftTicket(ctx, title, record, assignees)
+		if err != nil {
+			return 0, err
+		}
+		if err := a.writeArtifactTickets(artifacts, ticketURL); err != nil {
+			return 0, err
+		}
+		return number, nil
+	}
+}
+
+func requiredAssignees(values []string) ([]string, error) {
+	if len(values) == 0 {
+		return nil, errors.New("one to ten --assignee values are required")
+	}
+	assignees := make([]string, 0, len(values))
+	seen := map[string]bool{}
+	for _, value := range values {
+		login := strings.TrimSpace(value)
+		if login == "" {
+			return nil, errors.New("--assignee must be a non-empty GitHub username")
+		}
+		key := strings.ToLower(login)
+		if seen[key] {
+			return nil, fmt.Errorf("--assignee contains duplicate GitHub username %q", login)
+		}
+		seen[key] = true
+		assignees = append(assignees, login)
+	}
+	if len(assignees) > 10 {
+		return nil, errors.New("GitHub supports at most 10 Issue assignees")
+	}
+	return assignees, nil
+}
+
+func (a App) validateAssignees(ctx context.Context, assignees []string) error {
+	available, err := a.GitHub.ListAssignees(ctx, a.Config.GitHub.Repository)
+	if err != nil {
+		return err
+	}
+	if invalid := unavailableAssignees(assignees, available); len(invalid) != 0 {
+		return fmt.Errorf("GitHub users cannot be assigned to this repository: %s", strings.Join(invalid, ", "))
+	}
+	return nil
+}
+
+func (a App) ensureAssignees(ctx context.Context, number int, ticketURL string, assignees []string) error {
+	actual, err := a.GitHub.AddAssignees(ctx, a.Config.GitHub.Repository, number, assignees)
+	if err != nil {
+		return err
+	}
+	if missing := unavailableAssignees(assignees, actual); len(missing) != 0 {
+		return fmt.Errorf("GitHub did not assign requested users to ticket %s: %s", ticketURL, strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+func (a App) createDraftTicket(ctx context.Context, title string, record workflow.TicketRecord, assignees []string) (int, string, error) {
+	body, err := workflow.TicketBody(record)
+	if err != nil {
+		return 0, "", err
+	}
+	number, ticketURL, actualAssignees, err := a.GitHub.CreateIssue(ctx, a.Config.GitHub.Repository, title, body, assignees)
+	if err != nil {
+		return 0, "", err
+	}
+	if missing := unavailableAssignees(assignees, actualAssignees); len(missing) != 0 {
+		return 0, "", fmt.Errorf("GitHub did not assign requested users to ticket %s: %s", ticketURL, strings.Join(missing, ", "))
+	}
+	returnedTicketNumber, err := a.ticketNumber(ticketURL)
+	if err != nil {
+		return 0, "", fmt.Errorf("GitHub returned an invalid ticket URL: %w", err)
+	}
+	if returnedTicketNumber != number {
+		return 0, "", errors.New("GitHub returned a ticket URL for a different issue")
+	}
+	nodeID, err := a.GitHub.IssueNodeID(ctx, a.Config.GitHub.Repository, number)
+	if err != nil {
+		return 0, "", err
+	}
+	itemID, err := a.GitHub.AddProjectItem(ctx, a.Config.GitHub.Project.ID, nodeID)
+	if err != nil {
+		return 0, "", err
+	}
+	if err := a.GitHub.UpdateStatus(ctx, a.Config, itemID, a.Config.States.Draft.ID); err != nil {
+		return 0, "", err
+	}
+	if err := a.audit(ctx, number, workflow.AuditMarker(0, "draft")+"\nDraft ticket synchronized."); err != nil {
+		return 0, "", err
+	}
+	return number, ticketURL, nil
+}
+
+func unavailableAssignees(requested, available []string) []string {
+	availableSet := map[string]bool{}
+	for _, login := range available {
+		availableSet[strings.ToLower(login)] = true
+	}
+	var missing []string
+	for _, login := range requested {
+		if !availableSet[strings.ToLower(login)] {
+			missing = append(missing, login)
+		}
+	}
+	return missing
+}
+
 func (a App) Start(ctx context.Context, issue int) error {
+	ticket, err := a.GitHub.GetIssue(ctx, a.Config.GitHub.Repository, issue)
+	if err != nil {
+		return err
+	}
+	record, err := workflow.ParseTicket(ticket.Body)
+	if err != nil {
+		return fmt.Errorf("ticket #%d has an invalid delivery record: %w", issue, err)
+	}
+	if record.Phase != workflow.TasksPlan {
+		return fmt.Errorf("ticket #%d has phase %q; only tasks-plan tickets can start implementation", issue, record.Phase)
+	}
+	if len(github.IssueAssignees(ticket)) == 0 {
+		return fmt.Errorf("ticket #%d has no builder assignee", issue)
+	}
+	if err := a.requireReady(ctx, issue, ticket); err != nil {
+		return err
+	}
 	return a.moveIssue(ctx, issue, a.Config.States.Ready.Sources, a.Config.States.InProgress.ID, "start", 0)
+}
+
+func handoffPredecessor(phase workflow.Phase) (workflow.Phase, bool) {
+	switch phase {
+	case workflow.SpecsADRs:
+		return workflow.Requirement, true
+	case workflow.TasksPlan:
+		return workflow.SpecsADRs, true
+	default:
+		return "", false
+	}
+}
+
+func rootTicketRecord(body string) error {
+	record, err := workflow.ParseTicket(body)
+	if err != nil {
+		return err
+	}
+	if record.Phase != workflow.Requirement || record.Predecessor != nil {
+		return errors.New("ticket record is not a root requirement")
+	}
+	return nil
+}
+
+func childRecordMatches(body string, phase workflow.Phase, predecessorURL string, predecessorPhase workflow.Phase) error {
+	record, err := workflow.ParseTicket(body)
+	if err != nil {
+		return err
+	}
+	if record.Phase != phase {
+		return fmt.Errorf("ticket phase is %q, not %q", record.Phase, phase)
+	}
+	if record.Predecessor == nil || record.Predecessor.URL != predecessorURL || record.Predecessor.Phase != predecessorPhase {
+		return errors.New("ticket predecessor link does not match this handoff")
+	}
+	return nil
+}
+
+func (a App) linkedChildren(ctx context.Context, predecessorURL string, predecessorPhase workflow.Phase) ([]github.Issue, error) {
+	issues, err := a.GitHub.ListIssues(ctx, a.Config.GitHub.Repository)
+	if err != nil {
+		return nil, err
+	}
+	var children []github.Issue
+	for _, issue := range issues {
+		if !strings.Contains(issue.Body, "<!-- dw:ticket\n") {
+			continue
+		}
+		record, parseErr := workflow.ParseTicket(issue.Body)
+		if parseErr != nil {
+			return nil, fmt.Errorf("ticket #%d has an invalid delivery record: %w", issue.Number, parseErr)
+		}
+		if record.Predecessor == nil || record.Predecessor.URL != predecessorURL {
+			continue
+		}
+		if record.Predecessor.Phase != predecessorPhase {
+			return nil, fmt.Errorf("ticket #%d has an invalid predecessor phase %q", issue.Number, record.Predecessor.Phase)
+		}
+		children = append(children, issue)
+	}
+	return children, nil
+}
+
+func (a App) requireReady(ctx context.Context, number int, issue github.Issue) error {
+	if issue.NodeID == "" {
+		return fmt.Errorf("ticket #%d has no GitHub node ID", number)
+	}
+	item, err := a.GitHub.FindProjectItem(ctx, a.Config, issue.NodeID)
+	if err != nil {
+		return err
+	}
+	if item.StatusID != a.Config.States.Ready.ID {
+		return fmt.Errorf("ticket #%d is not Ready", number)
+	}
+	return nil
+}
+
+func (a App) canonicalTicketURL(number int) (string, error) {
+	owner, repository, err := a.Config.RepositoryParts()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("https://github.com/%s/%s/issues/%d", owner, repository, number), nil
 }
 
 func (a App) Register(ctx context.Context, prNumber, issue int, phase workflow.Phase, artifacts []string) error {

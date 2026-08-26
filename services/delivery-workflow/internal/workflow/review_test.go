@@ -30,3 +30,26 @@ func TestDocumentationRequiresArtifacts(t *testing.T) {
 		t.Fatal("Validate() succeeded without artifact paths")
 	}
 }
+
+func TestTicketRecordRoundTripPreservesPredecessor(t *testing.T) {
+	record := TicketRecord{
+		Version:   1,
+		Phase:     SpecsADRs,
+		Artifacts: []string{"docs/features/example/specifications/example.md"},
+		Predecessor: &TicketLink{
+			URL:   "https://github.com/example/repository/issues/17",
+			Phase: Requirement,
+		},
+	}
+	body, err := TicketBody(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := ParseTicket(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Predecessor == nil || parsed.Predecessor.URL != record.Predecessor.URL || parsed.Predecessor.Phase != Requirement {
+		t.Fatalf("ParseTicket() predecessor = %#v", parsed.Predecessor)
+	}
+}

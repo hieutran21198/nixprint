@@ -31,17 +31,22 @@ not store it in `.dw/config.yaml` or Nix configuration.
 ## Commands
 
 ```text
-dw draft --phase requirement --title "Document the requirement" --artifact docs/features/example/requirements/requirement.md
+dw assignees
+dw draft --phase requirement --title "Document the requirement" --artifact docs/features/example/requirements/requirement.md --assignee requirement-owner
+dw handoff --predecessor 17 --phase specs-adrs --title "Review the specification" --artifact docs/features/example/specifications/specification.md --assignee technical-lead
+dw handoff --predecessor 18 --phase tasks-plan --title "Build the change" --artifact docs/features/example/tasks/tasks.md --artifact docs/features/example/implementation-plan/plan.md --assignee builder
 dw register --pr 42 --phase requirement --artifact docs/features/example/requirements/requirement.md
-dw start --issue 17
-dw register --pr 43 --issue 17 --phase implementation
+dw start --issue 19
+dw register --pr 43 --issue 19 --phase implementation
 dw reject --pr 42 --reason "The requirement is not accepted."
 ```
 
-For phases 1-3, `dw draft` creates or reuses one ticket and records its
-canonical URL in each artifact front matter. `dw register` reads that URL to
-correlate the review unit. An implementation review has no artifact front
-matter, so `dw register --phase implementation` requires `--issue`.
+`dw draft` creates or reuses only the root Requirement ticket. `dw handoff`
+creates or reuses only a child Specifications and ADRs or Tasks and
+Implementation Plan ticket. Both commands record the canonical URL in each
+artifact front matter. `dw register` reads that URL to correlate the review
+unit. An implementation review has no artifact front matter, so
+`dw register --phase implementation` requires `--issue`.
 
 `dw transition` processes a merged pull request. It does not archive an
 unmerged pull request. An implementation merge moves a ticket to the configured
@@ -52,11 +57,43 @@ or another Project value.
 acceptance branch. The example schedules it daily and also permits a manual
 run.
 
+## Phase Handoff Assignment
+
+`dw assignees` lists the GitHub usernames that the configured repository can
+assign to an Issue. It prints one username on each line.
+
+`dw draft` and `dw handoff` require one to ten distinct `--assignee` values.
+They verify every username before they create an Issue or change a Project
+status. They create a new Issue with the selected users. When they reuse an
+existing ticket, they add the selected users and keep its current assignees.
+
+The root Requirement ticket assigns the requirement owner. A Ready Requirement
+ticket hands off to the technical lead for Specifications and ADRs. A Ready
+Specifications and ADRs ticket hands off to selected builders for Tasks and
+Implementation Plans. The technical lead remains the Phase-3 artifact owner.
+
+Each child Issue stores a `dw:ticket` record with its predecessor ticket URL
+and predecessor phase. `dw handoff` rejects a predecessor that is not Ready,
+has the wrong phase, or already has an invalid child link. A repeated handoff
+reuses the correct child, preserves existing collaborators, and confirms the
+supplied assignees.
+
+`dw start` accepts only a Ready `tasks-plan` ticket with one or more existing
+assignees. It changes its Project status to `In Progress`. It never prompts
+for, adds, or replaces an assignee.
+
+An assignee identifies GitHub work responsibility. It does not transfer
+artifact ownership or acceptance authority.
+
 ## Configuration
 
 See [the GitHub configuration example](examples/github/dw.config.yaml). The
 configuration stores GitHub Project field and option IDs. It does not store a
 token or GitHub App private key.
+
+The existing workflow token also lists and assigns Issue users. A fine-grained
+token needs GitHub Issues write permission. The authenticated user needs push
+access to add assignees.
 
 The `sources` list permits an execution system to use an intermediate status
 as a valid source for a transition. For example, `states.draft.sources` can

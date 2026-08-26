@@ -104,3 +104,88 @@ func TestTransitionLeavesUnmergedImplementationPullRequestUnchanged(t *testing.T
 		t.Fatalf("Transition() returned %v", err)
 	}
 }
+
+func TestStartUsesExistingBuilderAssignmentForReadyTasksPlan(t *testing.T) {
+	body, err := workflow.TicketBody(workflow.TicketRecord{
+		Version:   1,
+		Phase:     workflow.TasksPlan,
+		Artifacts: []string{"docs/features/example/tasks/tasks.md"},
+		Predecessor: &workflow.TicketLink{
+			URL:   "https://github.com/example/repository/issues/16",
+			Phase: workflow.SpecsADRs,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var moved bool
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.URL.Path {
+		case "/repos/example/repository/issues/17":
+			_ = json.NewEncoder(writer).Encode(map[string]any{"node_id": "task-node", "body": body, "assignees": []map[string]string{{"login": "builder"}}})
+		case "/repos/example/repository/issues/17/comments":
+			writer.WriteHeader(http.StatusCreated)
+		case "/graphql":
+			data, _ := io.ReadAll(request.Body)
+			var payload struct {
+				Query string `json:"query"`
+			}
+			_ = json.Unmarshal(data, &payload)
+			switch {
+			case strings.Contains(payload.Query, "items(first: 100"):
+				_ = json.NewEncoder(writer).Encode(map[string]any{
+					"data": map[string]any{
+						"node": map[string]any{
+							"items": map[string]any{
+								"nodes": []any{map[string]any{
+									"id":      "task-item",
+									"content": map[string]string{"id": "task-node"},
+									"fieldValues": map[string]any{"nodes": []any{map[string]any{
+										"optionId": "ready",
+										"field":    map[string]string{"id": "status-field"},
+									}}},
+								}},
+								"pageInfo": map[string]any{"hasNextPage": false},
+							},
+						},
+					},
+				})
+			case strings.Contains(payload.Query, "updateProjectV2ItemFieldValue"):
+				moved = true
+				_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"updateProjectV2ItemFieldValue": map[string]any{"projectV2Item": map[string]string{"id": "task-item"}}}})
+			default:
+				t.Fatalf("unexpected GraphQL query: %s", payload.Query)
+			}
+		default:
+			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+	}))
+	defer server.Close()
+	state := func(id string) config.State { return config.State{ID: id, Sources: []string{id}} }
+	cfg := config.Config{Version: config.Version, AcceptanceBranch: "main", GitHub: config.GitHub{Repository: "example/repository", Project: config.Project{Owner: "example", ID: "project-node", StatusFieldID: "status-field"}}, States: config.States{Draft: state("draft"), Ready: state("ready"), InProgress: state("progress"), Archived: state("archived"), ImplementationAccepted: state("accepted")}}
+	service := App{Config: cfg, GitHub: github.NewWithBaseURL("token", server.URL, server.Client())}
+	if err := service.Start(context.Background(), 17); err != nil {
+		t.Fatal(err)
+	}
+	if !moved {
+		t.Fatal("Start() did not move the assigned tasks-plan ticket")
+	}
+}
+
+func TestStartRejectsUnassignedTaskTicket(t *testing.T) {
+	body, err := workflow.TicketBody(workflow.TicketRecord{Version: 1, Phase: workflow.TasksPlan, Artifacts: []string{"tasks.md"}, Predecessor: &workflow.TicketLink{URL: "https://github.com/example/repository/issues/16", Phase: workflow.SpecsADRs}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/repos/example/repository/issues/17" {
+			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+		_ = json.NewEncoder(writer).Encode(map[string]any{"node_id": "task-node", "body": body})
+	}))
+	defer server.Close()
+	service := App{Config: config.Config{GitHub: config.GitHub{Repository: "example/repository"}}, GitHub: github.NewWithBaseURL("token", server.URL, server.Client())}
+	if err := service.Start(context.Background(), 17); err == nil {
+		t.Fatal("Start() accepted an unassigned task ticket")
+	}
+}

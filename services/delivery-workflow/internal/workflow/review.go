@@ -11,6 +11,7 @@ import (
 const (
 	markerStart = "<!-- dw:review-unit\n"
 	markerEnd   = "-->"
+	ticketStart = "<!-- dw:ticket\n"
 )
 
 type Phase string
@@ -29,6 +30,76 @@ type ReviewUnit struct {
 	Phase            Phase    `yaml:"phase"`
 	Artifacts        []string `yaml:"artifacts,omitempty"`
 	AcceptanceBranch string   `yaml:"acceptance_branch"`
+}
+
+// TicketRecord is the delivery-workflow data retained in a GitHub Issue.
+// A child record identifies the accepted ticket that handed work to its phase.
+type TicketRecord struct {
+	Version     int         `yaml:"version"`
+	Phase       Phase       `yaml:"phase"`
+	Artifacts   []string    `yaml:"artifacts"`
+	Predecessor *TicketLink `yaml:"predecessor,omitempty"`
+}
+
+type TicketLink struct {
+	URL   string `yaml:"url"`
+	Phase Phase  `yaml:"phase"`
+}
+
+func (r TicketRecord) Validate() error {
+	if r.Version != 1 {
+		return errors.New("ticket record version must be 1")
+	}
+	if !r.Phase.Documentation() || !r.Phase.Valid() {
+		return fmt.Errorf("ticket record has invalid documentation phase %q", r.Phase)
+	}
+	if len(r.Artifacts) == 0 {
+		return errors.New("ticket record artifact paths are required")
+	}
+	if r.Predecessor == nil {
+		if r.Phase != Requirement {
+			return errors.New("non-requirement ticket record must identify a predecessor")
+		}
+		return nil
+	}
+	if r.Phase == Requirement {
+		return errors.New("requirement ticket record must not identify a predecessor")
+	}
+	if r.Predecessor.URL == "" || !r.Predecessor.Phase.Valid() {
+		return errors.New("ticket record predecessor URL and phase are required")
+	}
+	return nil
+}
+
+func ParseTicket(body string) (TicketRecord, error) {
+	start := strings.Index(body, ticketStart)
+	if start == -1 {
+		return TicketRecord{}, errors.New("Issue body has no dw ticket record")
+	}
+	start += len(ticketStart)
+	endOffset := strings.Index(body[start:], markerEnd)
+	if endOffset == -1 {
+		return TicketRecord{}, errors.New("Issue body has an unfinished dw ticket record")
+	}
+	var ticket TicketRecord
+	if err := yaml.Unmarshal([]byte(body[start:start+endOffset]), &ticket); err != nil {
+		return TicketRecord{}, fmt.Errorf("parse ticket record: %w", err)
+	}
+	if err := ticket.Validate(); err != nil {
+		return TicketRecord{}, err
+	}
+	return ticket, nil
+}
+
+func TicketBody(record TicketRecord) (string, error) {
+	if err := record.Validate(); err != nil {
+		return "", err
+	}
+	data, err := yaml.Marshal(record)
+	if err != nil {
+		return "", fmt.Errorf("encode ticket record: %w", err)
+	}
+	return ticketStart + string(data) + markerEnd + "\n\nThis ticket tracks an Artifact-Driven Development review unit.", nil
 }
 
 func (r ReviewUnit) Validate() error {

@@ -25,6 +25,8 @@ lifecycle.
 - An execution system manages tickets and their work data.
 - A review unit is one ticket, one workflow phase, and one PR or MR.
 - An explicit rejection is an authorized decision to reject a review unit.
+- A predecessor is the accepted ticket that authorizes the next documentation
+  phase.
 
 ## Ticket State Semantics
 
@@ -65,6 +67,27 @@ merge to the acceptance branch.
 The integration MUST transition the ticket to `Archived` only after an explicit
 rejection.
 
+## Documentation Handoffs
+
+The Requirement owner MUST create the root Phase-1 Requirement ticket. The
+ticket MUST identify one to ten eligible Issue assignees. The Requirement owner
+is the Phase-1 artifact owner and Issue assignee.
+
+After the Requirement ticket is `Ready`, the Requirement owner MUST hand it to
+a Draft Phase-2 Specifications and ADRs ticket. The technical lead owns the
+Phase-2 artifacts and is the Phase-2 Issue assignee.
+
+After the Phase-2 ticket is `Ready`, the technical lead MUST hand it to a Draft
+Phase-3 Tasks and Implementation Plan ticket. The technical lead remains the
+Phase-3 artifact owner. The selected builder is the Phase-3 Issue assignee.
+
+Each child ticket MUST record its canonical predecessor ticket URL and
+predecessor phase. The integration MUST reject a handoff when the predecessor
+is not `Ready`, has the wrong phase, or already has an invalid child link.
+
+An Issue assignee identifies GitHub work responsibility. It MUST NOT change
+artifact ownership or acceptance authority.
+
 ## Phase 4
 
 For implementation, the workflow MUST be:
@@ -79,6 +102,10 @@ Task ticket Ready
 
 The execution system MUST transition the task ticket from `Ready` to
 `In Progress` when implementation starts.
+
+The integration MUST start only a `Ready` Phase-3 ticket with one or more
+existing builder assignees. It MUST reuse those assignees. It MUST NOT ask for,
+add, remove, or replace an assignee when Phase 4 starts.
 
 An accepted implementation merge is the ADD implementation acceptance
 boundary. It does not by itself require the task ticket to transition to
@@ -145,6 +172,10 @@ ticket. It MUST apply a transition only when the ticket has its expected state.
 
 The integration MUST process duplicate and late events safely. It MUST
 reconcile non-terminal review units after a delivery failure.
+
+A repeated documentation handoff MUST identify the same predecessor and child
+phase. The integration MUST reuse the linked child ticket, retain its existing
+assignees, and confirm that all supplied assignees are present.
 
 ## Artifact Ticket Correlation
 
