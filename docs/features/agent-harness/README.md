@@ -29,3 +29,5 @@ the `services` repository category and to `services/agent`.
 ## Documents
 
 - [Requirements](requirements/agent-harness.md)
+- [Specification](specifications/agent-harness.md)
+- [Provider-Neutral Harness Decision](decisions/provider-neutral-harness.md)

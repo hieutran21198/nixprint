@@ -29,4 +29,6 @@ belongs to the `services` repository category and to
 ## Documents
 
 - [Requirements](requirements/delivery-workflow.md)
+- [Specification](specifications/delivery-workflow.md)
+- [GitHub Adapter Decision](decisions/github-adapter.md)
 - [Shared Delivery Workflow Governance](../../wiki/governance/documentation/artifact-driven/delivery-workflow.md)
