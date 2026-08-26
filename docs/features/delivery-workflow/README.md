@@ -31,4 +31,6 @@ belongs to the `services` repository category and to
 - [Requirements](requirements/delivery-workflow.md)
 - [Specification](specifications/delivery-workflow.md)
 - [GitHub Adapter Decision](decisions/github-adapter.md)
+- [Tasks](tasks/delivery-workflow.md)
+- [Implementation Plan](implementation-plan/delivery-workflow.md)
 - [Shared Delivery Workflow Governance](../../wiki/governance/documentation/artifact-driven/delivery-workflow.md)
