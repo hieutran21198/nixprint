@@ -34,10 +34,11 @@ technical correctness of decisions and specifications. The coordinator never
 accepts artifacts or resolves authority conflicts.
 
 `workspace.blueprint.polyrepo.implementationExperts.<id>` requires a
-description, persistent instructions, default skills, and either `repository`
-or `implementationArea`. A declaration outside the Polyrepo blueprint fails
-evaluation. The profile does not infer experts from repositories or
-generate category and product combinations.
+description, persistent instructions, default skills, and the current
+write-boundary contract. A declaration outside the Polyrepo blueprint fails
+evaluation. The profile does not infer experts from repositories or generate
+category and product combinations. See the
+[Write Boundaries specification](../../agent-harness-write-boundaries/specifications/write-boundaries.md).
 
 The profile has no separate enable option. Select it with
 `workspace.composition.use`. The obsolete

@@ -1,5 +1,6 @@
 let
   lib = import <nixpkgs/lib>;
+  pkgs = import <nixpkgs> { };
   namespace = "workspace";
   nsImporter = import ../../../libs/nix-utils/_importer.nix { inherit namespace; };
 
@@ -9,6 +10,18 @@ let
       default = [ ];
     };
     options.files = lib.mkOption {
+      type = lib.types.attrsOf lib.types.anything;
+      default = { };
+    };
+    options.warnings = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+    };
+    options.packages = lib.mkOption {
+      type = lib.types.listOf lib.types.anything;
+      default = [ ];
+    };
+    options.scripts = lib.mkOption {
       type = lib.types.attrsOf lib.types.anything;
       default = { };
     };
@@ -45,12 +58,14 @@ let
       enable = true;
       secrets.DOCUMENTATION_TOKEN = "test-token";
     };
+
+    config._module.args.pkgs = pkgs;
   };
 
   evaluate =
     module:
     (lib.evalModules {
-      specialArgs = { inherit namespace; };
+      specialArgs = { inherit namespace pkgs; };
       modules = [
         baseModule
         module
@@ -115,6 +130,7 @@ let
           claude.enable = true;
           opencode.enable = true;
         };
+        implementationBoundary.mode = "required";
       };
       mcp.servers.documentation = standardMcp;
       expert.experts.reviewer = {
@@ -147,7 +163,8 @@ let
     };
     workspace.blueprint.polyrepo.implementationExperts.agent-service = {
       description = "Implement bounded changes in the agent service";
-      repository = "services/agent";
+      writePaths = [ "services/agent" ];
+      writeGlobs = [ "services/agent/**/*.nix" ];
       persistentInstructions = "Change only services/agent and report its validation evidence.";
       defaultSkills = [ "nix-module" ];
     };
@@ -230,6 +247,7 @@ let
     workspace.blueprint.use = "polyrepo";
     workspace.blueprint.polyrepo.implementationExperts.unbounded = {
       description = "Invalid Polyrepo implementation expert";
+      writePaths = [ ];
       persistentInstructions = "This declaration must fail validation.";
     };
   };
@@ -237,7 +255,7 @@ let
   outsidePolyrepo = evaluate {
     workspace.blueprint.polyrepo.implementationExperts.agent-service = {
       description = "Invalid Polyrepo implementation expert";
-      repository = "services/agent";
+      writePaths = [ "services/agent" ];
       persistentInstructions = "This declaration must fail validation.";
     };
   };
@@ -264,6 +282,55 @@ let
       };
     };
   };
+
+  claudeOpenCodeOnly = evaluate {
+    workspace.agent.harness = {
+      enable = true;
+      clients = {
+        claude.enable = true;
+        opencode.enable = true;
+      };
+    };
+    workspace.agent.expert.experts.nix-expert = {
+      description = "Implement Nix modules";
+      writePaths = [ "services/agent" ];
+      writeGlobs = [ "services/agent/**/*.nix" ];
+      persistentInstructions = "Change only Nix modules.";
+    };
+  };
+
+  invalidWritePath = evaluate {
+    workspace.blueprint.use = "polyrepo";
+    workspace.blueprint.polyrepo.implementationExperts.invalid = {
+      description = "Invalid path";
+      writePaths = [ "../outside" ];
+      persistentInstructions = "This declaration must fail validation.";
+    };
+  };
+
+  invalidWriteGlob = evaluate {
+    workspace.blueprint.use = "polyrepo";
+    workspace.blueprint.polyrepo.implementationExperts.invalid = {
+      description = "Invalid glob";
+      writePaths = [ "services/agent" ];
+      writeGlobs = [ "libs/**/*.nix" ];
+      persistentInstructions = "This declaration must fail validation.";
+    };
+  };
+
+  invalidGenericExpert = evaluate {
+    workspace.agent = {
+      harness = {
+        enable = true;
+        clients.codex.enable = true;
+      };
+      expert.experts.invalid = {
+        description = "Invalid direct expert";
+        writePaths = [ "../outside" ];
+        persistentInstructions = "This declaration must fail validation.";
+      };
+    };
+  };
 in
 assert full.workspace.agent.harness.build.enabled;
 assert lib.all (entry: entry.assertion) full.assertions;
@@ -287,6 +354,9 @@ assert
   == "{env:DOCUMENTATION_TOKEN}";
 assert lib.hasInfix "Default workflow skills: review-guidance."
   full.files.".codex/agents/reviewer.toml".toml.developer_instructions;
+assert full.scripts ? workspace-agent-run;
+assert lib.hasInfix "--ro-bind / /" full.scripts.workspace-agent-run.exec;
+assert lib.elem pkgs.bubblewrap full.packages;
 assert lib.hasInfix "skills: [\"review-guidance\"]" full.files.".claude/agents/reviewer.md".text;
 assert lib.hasInfix "mode: subagent" full.files.".opencode/agents/reviewer.md".text;
 assert lib.hasInfix "name: \"review-guidance\""
@@ -316,6 +386,16 @@ assert lib.hasInfix
   profileAgent.files.".claude/agents/scope-expert.md".text;
 assert lib.hasInfix "Default workflow skills: nix-module."
   profileAgent.files.".opencode/agents/agent-service.md".text;
+assert lib.hasInfix "permissions:" profileAgent.files.".opencode/agents/agent-service.md".text;
+assert lib.hasInfix "services/agent/**/*.nix"
+  profileAgent.files.".opencode/agents/agent-service.md".text;
+assert lib.hasInfix "PreToolUse" profileAgent.files.".claude/agents/agent-service.md".text;
+assert lib.hasInfix "validate-write" profileAgent.files.".claude/agents/agent-service.md".text;
+assert lib.hasInfix "Write boundary: services/agent."
+  profileAgent.files.".codex/agents/agent-service.toml".toml.developer_instructions;
+assert lib.hasInfix "writeGlobs is not a portable Codex write boundary" (
+  builtins.concatStringsSep "\n" profileAgent.warnings
+);
 assert profileDeliveryWithoutAgent.files ? ".dw/config.yaml";
 assert profileDeliveryWithoutAgent.files ? ".github/workflows/dw-validate.yml";
 assert !(profileDeliveryWithoutAgent.workspace.agent.skill.skills ? delivery-workflow);
@@ -347,8 +427,12 @@ assert directConfiguration.workspace.delivery-workflow.build.enabled;
 assert !(directConfiguration.workspace.agent.expert.experts ? scope-expert);
 assert !(lib.all (entry: entry.assertion) unboundedPolyrepo.assertions);
 assert !(lib.all (entry: entry.assertion) outsidePolyrepo.assertions);
+assert !(lib.all (entry: entry.assertion) invalidWritePath.assertions);
+assert !(lib.all (entry: entry.assertion) invalidWriteGlob.assertions);
+assert !(lib.all (entry: entry.assertion) invalidGenericExpert.assertions);
 assert !legacyIntegrationOption.success;
 assert !(codexOnly.files ? ".mcp.json");
 assert !(codexOnly.files ? ".claude/agents/reviewer.md");
 assert !(codexOnly.files ? ".opencode/agents/reviewer.md");
+assert claudeOpenCodeOnly.warnings == [ ];
 true

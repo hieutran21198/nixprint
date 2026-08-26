@@ -21,7 +21,9 @@ the required interfaces and activation rules.
 - Let the selected workspace composition profile own combined expert behavior.
 - Configure Polyrepo implementation experts through
   `workspace.blueprint.polyrepo.implementationExperts`.
-- Require every Polyrepo implementation expert to have a bounded area.
+- Require every Polyrepo implementation expert to have a boundary. The current
+  boundary contract is defined by the
+  [Write Boundaries feature](../../agent-harness-write-boundaries/README.md).
 - Remove the preset modules and the obsolete
   `workspace.agent.expert.polyrepo.implementationExperts` option.
 - Preserve provider-native permissions, selected-client behavior, MCP output,

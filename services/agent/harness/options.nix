@@ -30,6 +30,17 @@ let
         description = "OpenCode project client configuration";
       };
     };
+
+    implementationBoundary = {
+      mode = utils.mkEnumOpt {
+        values = [
+          "disabled"
+          "required"
+        ];
+        default = "disabled";
+        description = "Require the Linux sandbox runner for implementation experts";
+      };
+    };
   };
 in
 {

@@ -3,6 +3,9 @@
 devenv.local.nix
 devenv.local.yaml
 .codex
+.claude/
+.mcp.json
+CLAUDE.md
 .opencode
 .agents/
 

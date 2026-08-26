@@ -6,18 +6,49 @@
 }:
 let
   inherit (config.${namespace}) utils;
+  hasGlob =
+    value:
+    lib.any (marker: lib.hasInfix marker value) [
+      "*"
+      "?"
+      "["
+      "]"
+    ];
+  relativePath =
+    value:
+    value != ""
+    && value != "."
+    && !(lib.hasPrefix "/" value)
+    && !(lib.hasPrefix "~" value)
+    && !(lib.elem ".." (lib.splitString "/" value));
+  unique = values: builtins.length values == builtins.length (lib.unique values);
+  leadingLiteralSegments =
+    segments:
+    if segments == [ ] || hasGlob (builtins.head segments) then
+      [ ]
+    else
+      [ (builtins.head segments) ] ++ leadingLiteralSegments (builtins.tail segments);
+  literalGlobPrefix =
+    value: lib.concatStringsSep "/" (leadingLiteralSegments (lib.splitString "/" value));
+  globContainedBy =
+    paths: glob:
+    let
+      prefix = literalGlobPrefix glob;
+    in
+    prefix != "" && lib.any (path: prefix == path || lib.hasPrefix "${path}/" prefix) paths;
   implementationExpertModule = lib.types.submodule {
     options = {
       description = utils.mkStrOpt {
         description = "When the coordinator should use this implementation expert";
       };
-      repository = utils.mkStrOpt {
-        default = "";
-        description = "Repository that bounds this implementation expert";
+      writePaths = utils.mkListOpt {
+        ofType = lib.types.str;
+        description = "Non-empty repository-relative files or directory roots that bound this implementation expert";
       };
-      implementationArea = utils.mkStrOpt {
-        default = "";
-        description = "Other bounded implementation area for this expert";
+      writeGlobs = utils.mkListOpt {
+        ofType = lib.types.str;
+        default = [ ];
+        description = "Optional repository-relative edit patterns that narrow writePaths for supported clients";
       };
       persistentInstructions = utils.mkStrOpt {
         description = "Persistent implementation instructions for this expert";
@@ -56,11 +87,34 @@ in
     let
       inherit (config.${namespace}.blueprint) polyrepo;
       rootGuidanceEnabled = config.${namespace}.documentation.model != "artifact-driven";
-      bounded = expert: expert.repository != "" || expert.implementationArea != "";
-      boundedAssertions = lib.mapAttrsToList (name: expert: {
-        assertion = bounded expert;
-        message = "workspace.blueprint.polyrepo.implementationExperts.${name} requires repository or implementationArea";
-      }) polyrepo.implementationExperts;
+      implementationAssertions = lib.flatten (
+        lib.mapAttrsToList (name: expert: [
+          {
+            assertion = expert.writePaths != [ ];
+            message = "workspace.blueprint.polyrepo.implementationExperts.${name} requires a non-empty writePaths list";
+          }
+          {
+            assertion = unique expert.writePaths;
+            message = "workspace.blueprint.polyrepo.implementationExperts.${name}.writePaths must not contain duplicates";
+          }
+          {
+            assertion = lib.all (path: relativePath path && !hasGlob path) expert.writePaths;
+            message = "workspace.blueprint.polyrepo.implementationExperts.${name}.writePaths must contain non-root, repository-relative paths without glob patterns or parent traversal";
+          }
+          {
+            assertion = unique expert.writeGlobs;
+            message = "workspace.blueprint.polyrepo.implementationExperts.${name}.writeGlobs must not contain duplicates";
+          }
+          {
+            assertion = lib.all (glob: relativePath glob && hasGlob glob) expert.writeGlobs;
+            message = "workspace.blueprint.polyrepo.implementationExperts.${name}.writeGlobs must contain repository-relative glob patterns without parent traversal";
+          }
+          {
+            assertion = lib.all (glob: globContainedBy expert.writePaths glob) expert.writeGlobs;
+            message = "workspace.blueprint.polyrepo.implementationExperts.${name}.writeGlobs must narrow a declared writePath";
+          }
+        ]) polyrepo.implementationExperts
+      );
     in
     {
       assertions =
@@ -68,7 +122,7 @@ in
           assertion = polyrepo.build.enabled;
           message = "workspace.blueprint.polyrepo.implementationExperts requires the Polyrepo blueprint";
         }
-        ++ boundedAssertions;
+        ++ implementationAssertions;
 
       ${namespace} = lib.mkIf polyrepo.build.enabled {
         blueprint.polyrepo = {

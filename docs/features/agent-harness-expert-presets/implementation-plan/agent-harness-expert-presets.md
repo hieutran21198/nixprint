@@ -23,9 +23,9 @@ This plan implements the
 ## Risks
 
 - Native skill preload behavior differs by client.
-- A configured implementation scope can be too broad. Configuration validation
-  requires a stated repository or implementation area, while review confirms
-  that the stated boundary is appropriate.
+- A configured implementation boundary can be too broad. The Write Boundaries
+  feature validates its declared paths, while review confirms that the
+  boundary is appropriate.
 - Consumers of the obsolete Polyrepo option must migrate in the same change.
 
 ## Verification

@@ -20,7 +20,13 @@ let
   ];
 
   implementationExpert = _: expert: {
-    inherit (expert) description persistentInstructions defaultSkills;
+    inherit (expert)
+      description
+      persistentInstructions
+      defaultSkills
+      writePaths
+      writeGlobs
+      ;
   };
 
   deliveryGuidanceEnabled = harness.build.enabled && deliveryWorkflowEnabled;
