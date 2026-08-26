@@ -1,6 +1,6 @@
 ---
 delivery:
-    ticket: https://github.com/hieutran21198/nixprint/issues/1
+    ticket: https://github.com/hieutran21198/nixprint/issues/9
 ---
 # Agent Harness Requirements
 
