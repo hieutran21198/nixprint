@@ -45,9 +45,9 @@ Use `organization` as the owner type for an organization-owned Project.
 
 ```text
 dw assignees
-dw draft --phase requirement --title "Document the requirement" --artifact PATH --assignee OWNER
-dw handoff --predecessor 17 --phase specs-adrs --title "Define the design" --artifact PATH --assignee TECHNICAL_LEAD
-dw handoff --predecessor 18 --phase tasks-plan --title "Plan the change" --artifact TASK_PATH --artifact PLAN_PATH --assignee BUILDER
+dw draft --classification requirement --title "Document the requirement" --description "Define the required outcome." --artifact PATH --assignee OWNER
+dw handoff --requirement 17 --classification specification --title "Define the design" --description "Define the current design." --artifact PATH --assignee TECHNICAL_LEAD
+dw handoff --requirement 17 --classification task --title "Plan the change" --description "Define the implementation work." --artifact TASK_PATH --artifact PLAN_PATH --assignee BUILDER
 dw register --pr 42 --phase requirement --artifact PATH
 dw start --issue 19
 dw register --pr 43 --issue 19 --phase implementation
@@ -59,25 +59,19 @@ dw reconcile
 sorts usernames, and prints one username per line.
 
 `dw draft` creates or reuses only the root Requirement ticket. `dw handoff`
-creates or reuses only the two permitted child phases. Both commands require
+creates or reuses native direct child tickets. Both commands require
 one to ten distinct eligible assignees. Reuse keeps existing assignees and adds
 the requested users.
 
-Each child ticket records its predecessor URL and phase. A handoff requires a
-Ready predecessor in the exact prior phase. A retry reuses the one correctly
-linked child.
+Each child ticket has the root Requirement as its native direct parent. A handoff requires an Accepted Requirement and the complete accepted prior-phase set.
 
 `dw start` accepts only an assigned Ready `tasks-plan` ticket. It moves the
 ticket to In Progress and does not change assignees.
 
-`dw register` reads one canonical `delivery.ticket` URL from all
-documentation artifacts. Implementation registration uses `--issue` because
-it has no documentation artifact.
+`dw register` groups the complete phase artifact set by canonical `delivery.ticket` URL. Implementation registration uses `--issue` because it has no documentation artifact.
 
 `dw transition` verifies a merged pull request and its acceptance branch
-before it changes a ticket. Documentation merges move Draft to Ready.
-Implementation merges move In Progress to the configured implementation
-acceptance state.
+before it changes a ticket. Phase 1 and Phase 2 move their tickets to Accepted. Phase 3 moves Task tickets to Ready. Implementation merges move In Progress to the configured implementation acceptance state when automation is enabled.
 
 `dw reject` applies only to documentation phases. It requires an authorized
 actor and an explicit reason. An implementation ticket remains In Progress
@@ -88,7 +82,7 @@ to retry when the ticket already has the target state.
 
 ## Configuration
 
-[The configuration example](examples/github/dw.config.yaml) shows version 1.
+[The configuration example](examples/github/dw.config.yaml) shows version 2.
 It contains:
 
 - Repository and Project identifiers.
@@ -99,8 +93,7 @@ It contains:
 The `sources` lists can include intermediate Project values. For example, a
 Draft transition source can include Draft and Code Review.
 
-Configuration without `github.project.owner_type` remains compatible and
-means `organization`.
+Configuration requires `github.project.owner_type`, all four classifications, and all six lifecycle states.
 
 ## Nix Generation
 

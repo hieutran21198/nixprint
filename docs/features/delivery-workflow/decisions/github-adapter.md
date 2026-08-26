@@ -1,48 +1,37 @@
 ---
 delivery:
-    ticket: https://github.com/hieutran21198/nixprint/issues/3
+  ticket: https://github.com/hieutran21198/nixprint/issues/3
 ---
 # GitHub Adapter Decision
 
-## Requirement
-
-This decision supports the
-[Delivery Workflow Requirements](../requirements/delivery-workflow.md).
-
 ## Context
 
-Artifact-Driven documentation needs ordered review handoffs and traceability.
-The current repository uses GitHub Issues, pull requests, Projects, and
-Actions. The workflow must verify external state before it changes a ticket.
+The workflow needs external ticket state and repository-native correlation. It must keep workflow phase, ticket classification, and Project status separate.
 
 ## Options
 
-1. Store workflow state only in Markdown and depend on manual ticket changes.
-2. Implement a GitHub adapter that stores portable correlation records in
-   artifacts, Issues, and pull requests.
-3. Build a hosted event service and separate workflow database.
+1. Store lifecycle state in Markdown.
+2. Use GitHub Issues, native sub-issues, pull requests, Projects, and audit comments.
+3. Build a hosted workflow database.
 
 ## Decision
 
-Use a repository-local `dw` command and a GitHub composite action. Use GitHub
-Issues as tickets and one GitHub Project status field as the execution state.
-Keep the workflow phase and correlation records provider-neutral in their
-Markdown and comment formats.
+Use the repository-local `dw` command and GitHub Actions. Use one root Requirement Issue. Use native direct sub-issues for Specification, Decision, and Task tickets. Use the Project `Status` field only for lifecycle state.
+
+For a user-owned Project, use repository labels for classification. For an organization-owned Project, use native Issue Types. Require the selected classifications to exist.
+
+Store machine correlation in artifact front matter, version 2 pull-request records, native sub-issue relationships, and root Requirement audit comments. Do not store a hidden ticket record in an Issue body.
 
 ## Rationale
 
-This boundary uses the repository's current delivery system. It makes each
-transition conditional on current pull-request and ticket state. It also
-supports retry without a separate service or database.
+This design uses GitHub-native relationships and keeps each concept independent. One phase record supports atomic validation and retry without a separate database.
 
 ## Consequences
 
 - The adapter supports one repository and one Project at a time.
-- Status names can differ, but configured option IDs define the semantics.
-- Operators and Actions need suitable GitHub tokens.
-- Repository configuration stores identifiers, not credentials.
-- A different provider needs a new adapter for the same phase semantics.
-- Testing, release, and deployment remain outside this workflow.
+- Operators must create labels or Issue Types before use.
+- The adapter does not delete or repurpose unrelated Project statuses.
+- A different provider needs an adapter for the same provider-neutral phase rules.
 
 ## Specification
 

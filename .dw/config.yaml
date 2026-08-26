@@ -3,8 +3,13 @@
 acceptance_branch: main
 authorizer_teams: []
 authorizer_users:
-  - hieutran21198
+- hieutran21198
 github:
+  classification:
+    decision: Decision
+    requirement: Requirement
+    specification: Specification
+    task: Task
   project:
     id: PVT_kwHOBT4R-M4BhZNq
     number: 4
@@ -13,30 +18,37 @@ github:
     status_field: Status
     status_field_id: PVTSSF_lAHOBT4R-M4BhZNqzhgVGcw
   repository: hieutran21198/nixprint
+phase4:
+  auto_transition: true
 states:
+  accepted:
+    id: f75ad846
+    name: ''
+    sources:
+    - f75ad846
   archived:
     id: 22d9e7d5
-    name: Archived
+    name: ''
     sources:
-      - 22d9e7d5
+    - 22d9e7d5
   draft:
     id: f14914a9
-    name: Draft
+    name: ''
     sources:
-      - f14914a9
+    - f14914a9
   implementation_accepted:
     id: cc8d5950
-    name: Ready For Testing
+    name: ''
     sources:
-      - cc8d5950
+    - cc8d5950
   in_progress:
     id: 47fc9ee4
-    name: In Progress
+    name: ''
     sources:
-      - 47fc9ee4
+    - 47fc9ee4
   ready:
-    id: f75ad846
-    name: Todo
+    id: 052c1f36
+    name: ''
     sources:
-      - f75ad846
-version: 1
+    - 052c1f36
+version: 2

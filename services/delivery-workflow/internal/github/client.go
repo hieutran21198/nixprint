@@ -185,10 +185,13 @@ func (c *Client) DiscoverProject(ctx context.Context, ownerType, owner string, n
 	return "", "", nil, fmt.Errorf("Project status field %q was not found", statusField)
 }
 
-func (c *Client) CreateIssue(ctx context.Context, repository, title, body string, assignees []string) (int, string, []string, error) {
+func (c *Client) CreateIssue(ctx context.Context, repository, title, body string, assignees, labels []string) (int, string, []string, error) {
 	input := map[string]any{"title": title, "body": body}
 	if len(assignees) != 0 {
 		input["assignees"] = assignees
+	}
+	if len(labels) != 0 {
+		input["labels"] = labels
 	}
 	var result Issue
 	if err := c.request(ctx, http.MethodPost, "/repos/"+repository+"/issues", input, &result); err != nil {
@@ -298,6 +301,38 @@ func (c *Client) UpdatePullRequestBody(ctx context.Context, repository string, n
 
 func (c *Client) AddIssueComment(ctx context.Context, repository string, number int, body string) error {
 	return c.request(ctx, http.MethodPost, fmt.Sprintf("/repos/%s/issues/%d/comments", repository, number), map[string]string{"body": body}, nil)
+}
+
+// ParentIssueNumber returns the native direct parent of an Issue.
+func (c *Client) ParentIssueNumber(ctx context.Context, repository string, number int) (int, error) {
+	owner, name, ok := strings.Cut(repository, "/")
+	if !ok {
+		return 0, fmt.Errorf("repository must be owner/repository")
+	}
+	query := `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){issue(number:$number){parent{number}}}}`
+	var result struct {
+		Repository struct {
+			Issue struct {
+				Parent *struct {
+					Number int `json:"number"`
+				} `json:"parent"`
+			} `json:"issue"`
+		} `json:"repository"`
+	}
+	if err := c.graphql(ctx, query, map[string]any{"owner": owner, "name": name, "number": number}, &result); err != nil {
+		return 0, err
+	}
+	if result.Repository.Issue.Parent == nil {
+		return 0, fmt.Errorf("ticket #%d has no native parent Issue", number)
+	}
+	return result.Repository.Issue.Parent.Number, nil
+}
+
+// SetParentIssue creates the native direct sub-issue relationship.
+func (c *Client) SetParentIssue(ctx context.Context, parentID, childID string) error {
+	query := `mutation($parent:ID!,$child:ID!){addSubIssue(input:{issueId:$parent,subIssueId:$child}){issue{id}}}`
+	var result any
+	return c.graphql(ctx, query, map[string]any{"parent": parentID, "child": childID}, &result)
 }
 
 func (c *Client) AddProjectItem(ctx context.Context, projectID, contentID string) (string, error) {

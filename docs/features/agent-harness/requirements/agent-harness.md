@@ -1,6 +1,6 @@
 ---
 delivery:
-    ticket: https://github.com/hieutran21198/nixprint/issues/1
+    ticket: https://github.com/hieutran21198/nixprint/issues/9
 ---
 # Agent Harness Requirements
 
@@ -34,6 +34,17 @@ implementation write boundaries.
   runner and MUST fail closed when the runner cannot start.
 - Client-native edit policies MUST remain additional guardrails. They MUST NOT
   replace the shared runner guarantee.
+- The Agent Harness MUST provide the `context7` MCP server. The server MUST
+  give agents current library documentation through a local standard input and
+  output command.
+- The `context7` API key MUST stay optional. A configured key MUST use one
+  SecretSpec secret reference, such as `CONTEXT7_API_KEY`.
+- The Agent Harness MUST provide the `codegraph` MCP server. The server MUST
+  index this repository locally and MUST serve code-graph queries through a
+  local standard input and output command.
+- The `context7` and `codegraph` servers MUST use the provider-neutral MCP
+  server declarations. They MUST NOT add client-specific source configuration.
+- Every enabled client MUST receive the `context7` and `codegraph` servers.
 
 ## Acceptance Criteria
 
@@ -49,6 +60,11 @@ implementation write boundaries.
 - Claude Code and OpenCode receive native direct-edit guardrails.
 - Codex receives write-boundary guidance and a warning when write globs cannot
   form a portable native boundary.
+- Each enabled client receives native `context7` and `codegraph` MCP entries.
+- SecretSpec supplies the declared `context7` API key when the harness starts,
+  and generated files contain only the secret reference.
+- Evaluation fails when the `context7` or `codegraph` command is empty or
+  invalid.
 
 ## Specification
 

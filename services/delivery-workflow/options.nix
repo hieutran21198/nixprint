@@ -59,6 +59,24 @@ let
           description = "GitHub Project single-select status field ID";
         };
       };
+      classification = {
+        requirement = utils.mkStrOpt {
+          default = "Requirement";
+          description = "Active Requirement label or Issue Type";
+        };
+        specification = utils.mkStrOpt {
+          default = "Specification";
+          description = "Active Specification label or Issue Type";
+        };
+        decision = utils.mkStrOpt {
+          default = "Decision";
+          description = "Active Decision label or Issue Type";
+        };
+        task = utils.mkStrOpt {
+          default = "Task";
+          description = "Active Task label or Issue Type";
+        };
+      };
     };
 
     acceptanceBranch = utils.mkStrOpt {
@@ -84,6 +102,11 @@ let
         default = { };
         description = "Configured Draft workflow semantic";
       };
+      accepted = lib.mkOption {
+        type = stateModule;
+        default = { };
+        description = "Configured Accepted workflow semantic";
+      };
       ready = lib.mkOption {
         type = stateModule;
         default = { };
@@ -104,6 +127,11 @@ let
         default = { };
         description = "Configured implementation-acceptance workflow semantic";
       };
+    };
+
+    phase4.autoTransition = utils.mkBoolOpt {
+      default = true;
+      description = "Automatically accept implementation tickets after merge";
     };
 
     action.ref = utils.mkStrOpt {

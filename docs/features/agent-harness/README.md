@@ -16,6 +16,7 @@ the `services` repository category and to `services/agent`.
 
 - Agent Harness activation and client selection.
 - Provider-neutral MCP, expert, and skill declarations.
+- Default project MCP server selection (`context7`, `codegraph`).
 - Native project assets for Codex, Claude Code, and OpenCode.
 - SecretSpec environment-variable references.
 - Expert write-boundary validation and enforcement.

@@ -15,7 +15,7 @@ import (
 )
 
 func TestTransitionMovesDocumentationTicketAfterVerifiedMerge(t *testing.T) {
-	review := workflow.ReviewUnit{Version: 1, TicketURL: "https://github.com/example/repository/issues/17", TicketNumber: 17, Phase: workflow.Requirement, Artifacts: []string{"docs/requirement.md"}, AcceptanceBranch: "main"}
+	review := workflow.ReviewUnit{Version: 2, RequirementURL: "https://github.com/example/repository/issues/17", RequirementNumber: 17, Phase: workflow.Requirement, Groups: []workflow.TicketGroup{{TicketURL: "https://github.com/example/repository/issues/17", TicketNumber: 17, Classification: workflow.RequirementClassification, Artifacts: []string{"docs/requirement.md"}}}, AcceptanceBranch: "main"}
 	body, err := workflow.Upsert("", review)
 	if err != nil {
 		t.Fatal(err)
@@ -76,15 +76,15 @@ func TestTransitionMovesDocumentationTicketAfterVerifiedMerge(t *testing.T) {
 	defer server.Close()
 
 	state := func(id string) config.State { return config.State{ID: id, Sources: []string{id}} }
-	cfg := config.Config{Version: config.Version, AcceptanceBranch: "main", GitHub: config.GitHub{Repository: "example/repository", Project: config.Project{Owner: "example", ID: "project-node", StatusFieldID: "status-field"}}, States: config.States{Draft: state("draft"), Ready: state("ready"), InProgress: state("progress"), Archived: state("archived"), ImplementationAccepted: state("ready-to-test")}}
+	cfg := config.Config{Version: config.Version, AcceptanceBranch: "main", GitHub: config.GitHub{Repository: "example/repository", Project: config.Project{Owner: "example", ID: "project-node", StatusFieldID: "status-field"}}, States: config.States{Draft: state("draft"), Accepted: state("accepted"), Ready: state("ready"), InProgress: state("progress"), Archived: state("archived"), ImplementationAccepted: state("ready-to-test")}}
 	service := App{Config: cfg, GitHub: github.NewWithBaseURL("token", server.URL, server.Client())}
 	if err := service.Transition(context.Background(), 4); err != nil {
 		t.Fatalf("Transition() returned %v", err)
 	}
-	if mutationOption != "ready" {
-		t.Fatalf("status option = %q, want ready", mutationOption)
+	if mutationOption != "accepted" {
+		t.Fatalf("status option = %q, want accepted", mutationOption)
 	}
-	if !strings.Contains(auditComment, "outcome=accepted") {
+	if !strings.Contains(auditComment, "outcome=phase-accepted") {
 		t.Fatalf("audit comment = %q", auditComment)
 	}
 }
@@ -106,15 +106,7 @@ func TestTransitionLeavesUnmergedImplementationPullRequestUnchanged(t *testing.T
 }
 
 func TestStartUsesExistingBuilderAssignmentForReadyTasksPlan(t *testing.T) {
-	body, err := workflow.TicketBody(workflow.TicketRecord{
-		Version:   1,
-		Phase:     workflow.TasksPlan,
-		Artifacts: []string{"docs/features/example/tasks/tasks.md"},
-		Predecessor: &workflow.TicketLink{
-			URL:   "https://github.com/example/repository/issues/16",
-			Phase: workflow.SpecsADRs,
-		},
-	})
+	body, err := workflow.TicketBody("Implement the accepted plan.", []string{"docs/features/example/tasks/tasks.md"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,6 +124,8 @@ func TestStartUsesExistingBuilderAssignmentForReadyTasksPlan(t *testing.T) {
 			}
 			_ = json.Unmarshal(data, &payload)
 			switch {
+			case strings.Contains(payload.Query, "parent{number}"):
+				_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"repository": map[string]any{"issue": map[string]any{"parent": map[string]int{"number": 16}}}}})
 			case strings.Contains(payload.Query, "items(first: 100"):
 				_ = json.NewEncoder(writer).Encode(map[string]any{
 					"data": map[string]any{
@@ -173,7 +167,7 @@ func TestStartUsesExistingBuilderAssignmentForReadyTasksPlan(t *testing.T) {
 }
 
 func TestStartRejectsUnassignedTaskTicket(t *testing.T) {
-	body, err := workflow.TicketBody(workflow.TicketRecord{Version: 1, Phase: workflow.TasksPlan, Artifacts: []string{"tasks.md"}, Predecessor: &workflow.TicketLink{URL: "https://github.com/example/repository/issues/16", Phase: workflow.SpecsADRs}})
+	body, err := workflow.TicketBody("Implement the accepted plan.", []string{"tasks.md"})
 	if err != nil {
 		t.Fatal(err)
 	}

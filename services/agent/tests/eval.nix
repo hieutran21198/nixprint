@@ -102,6 +102,10 @@ let
         id = "draft";
         sources = [ "draft" ];
       };
+      accepted = {
+        id = "accepted";
+        sources = [ "accepted" ];
+      };
       ready = {
         id = "ready";
         sources = [ "ready" ];
@@ -404,13 +408,13 @@ assert lib.hasInfix "delivery-workflow"
   profileDeliveryWithAgent.files.".codex/agents/scope-expert.toml".toml.developer_instructions;
 assert lib.hasInfix "delivery.ticket front matter"
   profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "dw assignees"
+assert lib.hasInfix "--classification requirement"
   profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "requirement owner"
+assert lib.hasInfix "root Requirement"
   profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "Phase-1-to-Phase-2 handoff"
+assert lib.hasInfix "complete Phase 2 set"
   profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "tasks-plan"
+assert lib.hasInfix "classification task"
   profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
 assert !profileOverridesDirectEnabledAgent.workspace.agent.harness.enable;
 assert !profileOverridesDirectEnabledAgent.workspace.agent.harness.build.enabled;

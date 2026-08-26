@@ -98,8 +98,9 @@ func loadApp() (app.App, error) {
 func runDraft(ctx context.Context, args []string) error {
 	flags := flag.NewFlagSet("draft", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
-	phase := flags.String("phase", "", "requirement")
+	classification := flags.String("classification", "", "requirement")
 	title := flags.String("title", "", "GitHub Issue title")
+	description := flags.String("description", "", "single-paragraph Issue description")
 	artifacts := stringList{}
 	flags.Var(&artifacts, "artifact", "artifact path; repeat as required")
 	assignees := stringList{}
@@ -111,7 +112,7 @@ func runDraft(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	number, err := service.Draft(ctx, workflow.Phase(*phase), *title, artifacts, assignees)
+	number, err := service.Draft(ctx, workflow.Classification(*classification), *title, *description, artifacts, assignees)
 	if err != nil {
 		return err
 	}
@@ -122,9 +123,10 @@ func runDraft(ctx context.Context, args []string) error {
 func runHandoff(ctx context.Context, args []string) error {
 	flags := flag.NewFlagSet("handoff", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
-	predecessor := flags.Int("predecessor", 0, "accepted predecessor GitHub Issue number")
-	phase := flags.String("phase", "", "specs-adrs or tasks-plan")
+	predecessor := flags.Int("requirement", 0, "accepted root Requirement GitHub Issue number")
+	classification := flags.String("classification", "", "specification, decision, or task")
 	title := flags.String("title", "", "GitHub Issue title")
+	description := flags.String("description", "", "single-paragraph Issue description")
 	artifacts := stringList{}
 	flags.Var(&artifacts, "artifact", "artifact path; repeat as required")
 	assignees := stringList{}
@@ -136,7 +138,7 @@ func runHandoff(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	number, err := service.Handoff(ctx, *predecessor, workflow.Phase(*phase), *title, artifacts, assignees)
+	number, err := service.Handoff(ctx, *predecessor, workflow.Classification(*classification), *title, *description, artifacts, assignees)
 	if err != nil {
 		return err
 	}

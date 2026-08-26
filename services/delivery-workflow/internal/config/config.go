@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const Version = 1
+const Version = 2
 
 // Config is the repository-local delivery workflow configuration.
 type Config struct {
@@ -20,11 +20,24 @@ type Config struct {
 	AuthorizerTeams  []string `yaml:"authorizer_teams"`
 	AuthorizerUsers  []string `yaml:"authorizer_users"`
 	States           States   `yaml:"states"`
+	Phase4           Phase4   `yaml:"phase4"`
 }
 
 type GitHub struct {
-	Repository string  `yaml:"repository"`
-	Project    Project `yaml:"project"`
+	Repository     string         `yaml:"repository"`
+	Project        Project        `yaml:"project"`
+	Classification Classification `yaml:"classification"`
+}
+
+type Classification struct {
+	Requirement   string `yaml:"requirement"`
+	Specification string `yaml:"specification"`
+	Decision      string `yaml:"decision"`
+	Task          string `yaml:"task"`
+}
+
+type Phase4 struct {
+	AutoTransition bool `yaml:"auto_transition"`
 }
 
 type Project struct {
@@ -38,6 +51,7 @@ type Project struct {
 
 type States struct {
 	Draft                  State `yaml:"draft"`
+	Accepted               State `yaml:"accepted"`
 	Ready                  State `yaml:"ready"`
 	InProgress             State `yaml:"in_progress"`
 	Archived               State `yaml:"archived"`
@@ -99,6 +113,7 @@ func (c Config) Validate() error {
 	}
 	for name, state := range map[string]State{
 		"draft":                   c.States.Draft,
+		"accepted":                c.States.Accepted,
 		"ready":                   c.States.Ready,
 		"in_progress":             c.States.InProgress,
 		"archived":                c.States.Archived,
@@ -111,15 +126,20 @@ func (c Config) Validate() error {
 			return fmt.Errorf("states.%s.sources is required", name)
 		}
 	}
+	for name, value := range map[string]string{
+		"requirement":   c.GitHub.Classification.Requirement,
+		"specification": c.GitHub.Classification.Specification,
+		"decision":      c.GitHub.Classification.Decision,
+		"task":          c.GitHub.Classification.Task,
+	} {
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("github.classification.%s is required", name)
+		}
+	}
 	return nil
 }
 
-// OwnerKind returns the Project owner type. Existing configuration without the
-// field remains compatible with organization-owned Projects.
 func (p Project) OwnerKind() string {
-	if p.OwnerType == "" {
-		return "organization"
-	}
 	return p.OwnerType
 }
 
