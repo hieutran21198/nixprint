@@ -3,6 +3,12 @@
 This directory contains the documentation record for each cohesive change
 scope.
 
+- [Agent Harness](agent-harness/README.md)
+- [Artifact-Polyrepo Workspace](artifact-polyrepo-workspace/README.md)
+- [Delivery Workflow](delivery-workflow/README.md)
+
+## Records Pending Canonical Replacement
+
 - [Artifact-Driven Delivery Workflow Record](artifact-driven-delivery-workflow/README.md)
 - [Agent Harness Adapters](agent-harness-adapters/README.md)
 - [Agent Harness Expert Integrations](agent-harness-expert-presets/README.md)
