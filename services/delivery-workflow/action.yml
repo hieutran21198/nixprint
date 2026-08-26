@@ -10,5 +10,9 @@ runs:
     - uses: actions/setup-go@v6
       with:
         go-version-file: ${{ github.action_path }}/go.mod
+        cache: false
     - shell: bash
-      run: go run "$GITHUB_ACTION_PATH/cmd/dw" ${{ inputs.command }}
+      working-directory: ${{ github.action_path }}
+      env:
+        DW_CONFIG: ${{ github.workspace }}/.dw/config.yaml
+      run: go run ./cmd/dw ${{ inputs.command }}

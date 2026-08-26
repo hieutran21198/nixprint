@@ -6,6 +6,12 @@ Read [Artifact-Driven Documentation Governance](wiki/governance/documentation/ar
 
 ## Feature Records
 
+- [Agent Harness](features/agent-harness/README.md)
+- [Artifact-Polyrepo Workspace](features/artifact-polyrepo-workspace/README.md)
+- [Delivery Workflow](features/delivery-workflow/README.md)
+
+## Records Pending Canonical Replacement
+
 - [Artifact-Driven Delivery Workflow Record](features/artifact-driven-delivery-workflow/README.md)
 - [Agent Harness Adapters](features/agent-harness-adapters/README.md)
 - [Agent Harness Expert Presets](features/agent-harness-expert-presets/README.md)
