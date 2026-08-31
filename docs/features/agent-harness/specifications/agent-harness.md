@@ -17,6 +17,7 @@ The Agent Harness uses these project options:
 | `workspace.agent.harness.enable` | Boolean, `false` | Enables the harness. |
 | `workspace.agent.harness.clients.<client>.enable` | Boolean, `false` | Enables `codex`, `claude`, or `opencode`. |
 | `workspace.agent.harness.implementationBoundary.mode` | `disabled` or `required`, `disabled` | Selects shared write enforcement. |
+| `workspace.agent.mcp.servers.<id>.enable` | Boolean, `false` | Enables the MCP server. |
 | `workspace.agent.mcp.servers.<id>.command` | List of strings, empty | Defines a local standard input and output command. |
 | `workspace.agent.mcp.servers.<id>.cwd` | Nullable path, `null` | Sets the optional process directory. |
 | `workspace.agent.mcp.servers.<id>.environment` | Attribute set, empty | Sets literal values or `{ secret = "NAME"; }` references. |
@@ -51,8 +52,9 @@ Each MCP command list must contain at least one string. The first string is the
 executable for Codex and Claude Code. The remaining strings are arguments.
 OpenCode receives the complete list as its local command.
 
-MCP servers are project-global for each enabled client. Experts do not define
-client-specific MCP allow lists.
+Enabled MCP servers are project-global for each enabled client. Experts do not
+define client-specific MCP allow lists. Disabled MCP servers do not generate
+client entries. They do not require a command or SecretSpec references.
 
 Literal environment values remain literal. Secret references use the
 SecretSpec environment-variable name:
@@ -74,6 +76,7 @@ Every enabled client receives both servers.
 
 ```nix
 workspace.agent.mcp.servers.context7 = {
+  enable = true;
   command = [ "npx" "-y" "@upstash/context7-mcp" ];
   environment.CONTEXT7_API_KEY = { secret = "CONTEXT7_API_KEY"; };
 };
@@ -90,6 +93,7 @@ this declaration:
 
 ```nix
 workspace.agent.mcp.servers.codegraph = {
+  enable = true;
   command = [ "codegraph" "serve" "--mcp" ];
   cwd = ./.;
 };

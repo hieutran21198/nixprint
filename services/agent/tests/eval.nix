@@ -73,6 +73,7 @@ let
     }).config;
 
   standardMcp = {
+    enable = true;
     command = [
       "npx"
       "-y"
@@ -335,6 +336,23 @@ let
       };
     };
   };
+
+  disabledMcp = evaluate {
+    workspace.agent = {
+      harness = {
+        enable = true;
+        clients = {
+          codex.enable = true;
+          claude.enable = true;
+          opencode.enable = true;
+        };
+      };
+      mcp.servers.disabled = {
+        command = [ ];
+        environment.MISSING_SECRET.secret = "MISSING_SECRET";
+      };
+    };
+  };
 in
 assert full.workspace.agent.harness.build.enabled;
 assert lib.all (entry: entry.assertion) full.assertions;
@@ -439,4 +457,8 @@ assert !(codexOnly.files ? ".mcp.json");
 assert !(codexOnly.files ? ".claude/agents/reviewer.md");
 assert !(codexOnly.files ? ".opencode/agents/reviewer.md");
 assert claudeOpenCodeOnly.warnings == [ ];
+assert lib.all (entry: entry.assertion) disabledMcp.assertions;
+assert disabledMcp.workspace.agent.harness.build.codex.mcp == { };
+assert disabledMcp.workspace.agent.harness.build.claude.mcp == { };
+assert disabledMcp.workspace.agent.harness.build.opencode.mcp == { };
 true
