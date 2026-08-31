@@ -35,3 +35,5 @@ belongs to the `services` repository category and to `services/composition`,
 - [Composition Doctor Specification](specifications/composition-doctor.md)
 - [Concrete Workspace Profile Decision](decisions/concrete-workspace-profile.md)
 - [Evaluation-Time ASCII Report Decision](decisions/evaluation-time-ascii-report.md)
+- [Implement Composition Doctor Task](tasks/implement-composition-doctor.md)
+- [Implement Composition Doctor Plan](implementation-plan/implement-composition-doctor.md)
