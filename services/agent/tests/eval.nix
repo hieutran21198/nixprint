@@ -463,6 +463,22 @@ in
     assert lib.hasInfix
       "skills: [\"artifact-driven-authoring\",\"asd-ste100-writing\",\"artifact-driven-coordination\"]"
       profileAgent.files.".claude/agents/scope-expert.md".text;
+    assert lib.hasInfix "scope-expert agent"
+      profileAgent.files.".agents/skills/artifact-driven-coordination/SKILL.md".text;
+    assert lib.hasInfix "technical-expert agent"
+      profileAgent.files.".agents/skills/artifact-driven-coordination/SKILL.md".text;
+    assert
+      !(lib.hasInfix "delivery-workflow skill"
+        profileAgent.files.".agents/skills/artifact-driven-coordination/SKILL.md".text
+      );
+    assert lib.hasInfix "delivery-workflow skill"
+      profileDeliveryWithAgent.files.".agents/skills/artifact-driven-coordination/SKILL.md".text;
+    assert
+      !(lib.hasInfix "delivery.ticket"
+        profileAgent.files.".agents/skills/artifact-driven-authoring/SKILL.md".text
+      );
+    assert lib.hasInfix "delivery.ticket"
+      profileDeliveryWithAgent.files.".agents/skills/artifact-driven-authoring/SKILL.md".text;
     assert lib.hasInfix "Default workflow skills: nix-module."
       profileAgent.files.".opencode/agents/agent-service.md".text;
     assert lib.hasInfix "permissions:" profileAgent.files.".opencode/agents/agent-service.md".text;
