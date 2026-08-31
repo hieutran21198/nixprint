@@ -29,6 +29,10 @@ let
       type = lib.types.attrsOf lib.types.anything;
       default = { };
     };
+    options.git.root = lib.mkOption {
+      type = lib.types.str;
+      default = toString ./.;
+    };
     options.env = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
@@ -360,24 +364,14 @@ let
         enable = true;
         clients.codex.enable = true;
       };
-      mcp = {
-        servers = {
-          context7 = {
-            enable = true;
-            command = [ "context7-mcp" ];
-          };
-          codegraph = {
-            enable = true;
-            command = [
-              "codegraph"
-              "serve"
-              "--mcp"
-            ];
-          };
+      mcp.builtinServers = {
+        context7 = {
+          enable = true;
+          package = pkgs.hello;
         };
-        mcps = {
-          context7.package = pkgs.hello;
-          codegraph.package = pkgs.git;
+        codegraph = {
+          enable = true;
+          package = pkgs.git;
         };
       };
     };
@@ -389,18 +383,12 @@ let
         enable = true;
         clients.codex.enable = true;
       };
-      mcp.servers = {
+      mcp.builtinServers = {
         context7 = {
           enable = true;
-          command = [ "context7-mcp" ];
         };
         codegraph = {
           enable = true;
-          command = [
-            "codegraph"
-            "serve"
-            "--mcp"
-          ];
         };
       };
     };
@@ -517,4 +505,12 @@ assert lib.elem pkgs.hello packagedMcps.packages;
 assert lib.elem pkgs.git packagedMcps.packages;
 assert lib.elem pkgs.context7-mcp defaultPackagedMcps.packages;
 assert lib.elem pkgs.codegraph defaultPackagedMcps.packages;
+assert
+  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.command == "context7-mcp";
+assert
+  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.args == [
+    "serve"
+    "--mcp"
+  ];
+assert defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.cwd == toString ./.;
 true

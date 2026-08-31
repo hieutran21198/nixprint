@@ -28,12 +28,11 @@ must receive both servers.
 
 ## Decision
 
-Use option 3. Declare `context7` with the command `context7-mcp`. Make its
-`CONTEXT7_API_KEY` value an optional SecretSpec secret reference. Declare
-`codegraph` with the command `codegraph serve --mcp`, a repository-root process
-directory, and no secrets. Nix installs `pkgs.context7-mcp` and
-`pkgs.codegraph` when the related server is enabled. Users can override either
-package with a compatible package.
+Use option 3. Provide Context7 and Codegraph as built-in MCP servers. Context7
+uses the command `context7-mcp`. Codegraph uses the command `codegraph serve
+--mcp` in the repository root. Nix installs `pkgs.context7-mcp` and
+`pkgs.codegraph` when the related built-in server is enabled. Users can override
+either package with a compatible package.
 
 ## Rationale
 

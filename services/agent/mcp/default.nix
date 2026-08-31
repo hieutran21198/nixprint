@@ -93,8 +93,8 @@ in
             default = [ ];
             description = "Local MCP stdio command, including arguments";
           };
-          cwd = utils.mkPathOpt {
-            nullable = true;
+          cwd = lib.mkOption {
+            type = lib.types.nullOr (lib.types.either lib.types.path lib.types.str);
             default = null;
             description = "Optional MCP process working directory";
           };

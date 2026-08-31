@@ -21,8 +21,10 @@ The Agent Harness uses these project options:
 | `workspace.agent.mcp.servers.<id>.command` | List of strings, empty | Defines a local standard input and output command. |
 | `workspace.agent.mcp.servers.<id>.cwd` | Nullable path, `null` | Sets the optional process directory. |
 | `workspace.agent.mcp.servers.<id>.environment` | Attribute set, empty | Sets literal values or `{ secret = "NAME"; }` references. |
-| `workspace.agent.mcp.mcps.context7.package` | Package, `pkgs.context7-mcp` | Selects the Context7 MCP package. |
-| `workspace.agent.mcp.mcps.codegraph.package` | Package, `pkgs.codegraph` | Selects the Codegraph MCP package. |
+| `workspace.agent.mcp.builtinServers.context7.enable` | Boolean, `false` | Enables the built-in Context7 MCP server. |
+| `workspace.agent.mcp.builtinServers.context7.package` | Package, `pkgs.context7-mcp` | Selects the Context7 MCP package. |
+| `workspace.agent.mcp.builtinServers.codegraph.enable` | Boolean, `false` | Enables the built-in Codegraph MCP server. |
+| `workspace.agent.mcp.builtinServers.codegraph.package` | Package, `pkgs.codegraph` | Selects the Codegraph MCP package. |
 | `workspace.agent.expert.experts.<id>.description` | String | Defines when to use an expert. |
 | `workspace.agent.expert.experts.<id>.persistentInstructions` | String | Defines persistent expert instructions. |
 | `workspace.agent.expert.experts.<id>.defaultSkills` | List of strings, empty | Defines preferred workflow skills. |
@@ -58,10 +60,11 @@ Enabled MCP servers are project-global for each enabled client. Experts do not
 define client-specific MCP allow lists. Disabled MCP servers do not generate
 client entries. They do not require a command or SecretSpec references.
 
-An enabled `context7` or `codegraph` server installs its selected MCP package.
-The package option defaults to the project package from Nixpkgs. A user can set
-the option to a compatible package from their own package set. The selected
-package must provide the executable in the server command.
+An enabled built-in server adds its selected MCP package and its default
+declaration. Context7 uses `context7-mcp`. Codegraph uses `codegraph serve
+--mcp` from the repository root. The package option defaults to the project
+package from Nixpkgs. A user can set the option to a compatible package from
+their own package set. The selected package must provide the default executable.
 
 Literal environment values remain literal. Secret references use the
 SecretSpec environment-variable name:
@@ -82,28 +85,22 @@ Every enabled client receives both servers.
 `context7` provides current library documentation. It uses this declaration:
 
 ```nix
-workspace.agent.mcp.servers.context7 = {
+workspace.agent.mcp.builtinServers.context7 = {
   enable = true;
-  command = [ "context7-mcp" ];
-  environment.CONTEXT7_API_KEY = { secret = "CONTEXT7_API_KEY"; };
 };
 ```
 
 The `context7-mcp` executable comes from the selected Context7 package. The
-`CONTEXT7_API_KEY` secret is optional. When no key is configured, the
-server runs without an API key and may receive rate limits. When the secret is
-declared, SecretSpec supplies it at startup, and every generated client asset
-contains only the `{env:CONTEXT7_API_KEY}`, `${CONTEXT7_API_KEY}`, or
-`env_vars` reference form for its client.
+server runs without an API key and may receive rate limits. A project can add
+an optional SecretSpec reference through the neutral `context7` server
+declaration. Generated client assets contain only the secret reference.
 
 `codegraph` provides code-graph queries over a local repository index. It uses
 this declaration:
 
 ```nix
-workspace.agent.mcp.servers.codegraph = {
+workspace.agent.mcp.builtinServers.codegraph = {
   enable = true;
-  command = [ "codegraph" "serve" "--mcp" ];
-  cwd = ./.;
 };
 ```
 
