@@ -24,6 +24,11 @@ let
       description = "Enable the GitHub delivery-workflow integration";
     };
 
+    install = utils.mkBoolOpt {
+      default = false;
+      description = "Install the dw command without generating delivery-workflow files";
+    };
+
     github = {
       repository = utils.mkStrOpt {
         default = "";

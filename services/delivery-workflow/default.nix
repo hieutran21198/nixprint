@@ -5,9 +5,18 @@
   ...
 }:
 let
+  pkgs = config._module.args.pkgs;
   inherit (config.${namespace}) utils;
   cfg = config.${namespace}.delivery-workflow;
   deliveryWorkflowOptions = import ./options.nix { inherit lib utils; };
+
+  dw = pkgs.buildGoModule {
+    pname = "dw";
+    version = "1";
+    src = ./.;
+    subPackages = [ "cmd/dw" ];
+    vendorHash = "sha256-g+yaVIx4jxpAQ/+WrGKxhVeliYx7nLQe/zsGpxV4Fn4=";
+  };
 
   stateConfiguration = state: {
     inherit (state) id name sources;
@@ -29,6 +38,8 @@ in
   };
 
   config = {
+    packages = lib.optional (cfg.install || cfg.enable) dw;
+
     assertions = lib.optionals cfg.build.enabled [
       {
         assertion = cfg.github.repository != "";

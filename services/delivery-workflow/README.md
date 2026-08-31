@@ -97,7 +97,17 @@ Configuration requires `github.project.owner_type`, all four classifications, an
 
 ## Nix Generation
 
-`workspace.delivery-workflow.enable = true` seeds:
+Install `dw` before the GitHub Project configuration exists:
+
+```nix
+workspace.delivery-workflow.install = true;
+```
+
+Run `dw init` with an operator token. It writes `.dw/config.yaml` after it
+discovers the Project configuration. Copy the generated values into the Nix
+configuration. Then set `workspace.delivery-workflow.enable = true`.
+
+`workspace.delivery-workflow.enable = true` also installs `dw` and seeds:
 
 - `.dw/config.yaml`.
 - `.github/workflows/dw-validate.yml`.
@@ -108,6 +118,9 @@ The standalone module does not inspect the documentation model. The
 `artifact-polyrepo-workspace` profile selects Artifact-Driven Documentation,
 owns its effective configuration at `workspace.composition.deliveryWorkflow`,
 and requires enabled Git hooks.
+
+For that profile, set `workspace.composition.deliveryWorkflow.install = true`
+before the configuration is complete.
 
 Set `github.project.ownerType = "user"` and configure `authorizerUsers` for
 a user-owned Project. An organization-owned Project can use
