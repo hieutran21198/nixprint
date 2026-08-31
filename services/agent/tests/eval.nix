@@ -235,6 +235,13 @@ let
     };
   };
 
+  profileDoctorInvalid = evaluate {
+    workspace.composition = {
+      use = "artifact-polyrepo-workspace";
+      agent.enable = true;
+    };
+  };
+
   profileDeliveryWithoutGit = evaluate {
     workspace.git.hooks.enable = false;
     workspace.composition = {
@@ -395,126 +402,153 @@ let
     };
   };
 in
-assert full.workspace.agent.harness.build.enabled;
-assert lib.all (entry: entry.assertion) full.assertions;
-assert
-  full.workspace.agent.harness.build.codex.mcp.documentation.env_vars == [ "DOCUMENTATION_TOKEN" ];
-assert
-  full.workspace.agent.harness.build.claude.mcp.documentation.env.DOCUMENTATION_TOKEN
-  == "\${DOCUMENTATION_TOKEN}";
-assert
-  full.workspace.agent.harness.build.opencode.mcp.documentation.environment.DOCUMENTATION_TOKEN
-  == "{env:DOCUMENTATION_TOKEN}";
-assert
-  full.files.".codex/config.toml".toml.mcp_servers.documentation.env_vars
-  == [ "DOCUMENTATION_TOKEN" ];
-assert lib.all (skill: skill.enabled) full.files.".codex/config.toml".toml.skills.config;
-assert
-  full.files.".mcp.json".json.mcpServers.documentation.env.DOCUMENTATION_TOKEN
-  == "\${DOCUMENTATION_TOKEN}";
-assert
-  full.files.".opencode/opencode.json".json.mcp.documentation.environment.DOCUMENTATION_TOKEN
-  == "{env:DOCUMENTATION_TOKEN}";
-assert lib.hasInfix "Default workflow skills: review-guidance."
-  full.files.".codex/agents/reviewer.toml".toml.developer_instructions;
-assert full.scripts ? workspace-agent-run;
-assert lib.hasInfix "--ro-bind / /" full.scripts.workspace-agent-run.exec;
-assert lib.elem pkgs.bubblewrap full.packages;
-assert lib.hasInfix "skills: [\"review-guidance\"]" full.files.".claude/agents/reviewer.md".text;
-assert lib.hasInfix "mode: subagent" full.files.".opencode/agents/reviewer.md".text;
-assert lib.hasInfix "name: \"review-guidance\""
-  full.files.".agents/skills/review-guidance/SKILL.md".text;
-assert full.workspace.agent.skill.skills ? asd-ste100-writing;
-assert lib.hasInfix "name: \"asd-ste100-writing\""
-  full.files.".agents/skills/asd-ste100-writing/SKILL.md".text;
-assert full.files."CLAUDE.md".text == "@AGENTS.md\n";
-assert full.env.DOCUMENTATION_TOKEN == "test-token";
-assert !(lib.hasInfix "test-token" (builtins.toJSON full.files));
-assert profileBase.workspace.composition.artifactPolyrepoWorkspace.build.enabled;
-assert profileBase.workspace.documentation.model == "artifact-driven";
-assert profileBase.workspace.blueprint.use == "polyrepo";
-assert profileBase.workspace.file.".".entries ? "AGENTS.md";
-assert profileBase.workspace.file.".".entries ? "README.md";
-assert !profileBase.workspace.agent.harness.build.enabled;
-assert !(profileBase.workspace.agent.expert.experts ? scope-expert);
-assert profileAgent.workspace.agent.expert.experts ? scope-expert;
-assert profileAgent.workspace.agent.expert.experts ? technical-expert;
-assert profileAgent.workspace.agent.expert.experts ? agent-service;
-assert profileAgent.workspace.agent.skill.skills ? semantic-artifact-review;
-assert lib.elem "asd-ste100-writing"
-  profileAgent.workspace.agent.expert.experts.scope-expert.defaultSkills;
-assert profileAgent.files.".codex/agents/scope-expert.toml".toml.name == "scope-expert";
-assert lib.hasInfix
-  "skills: [\"artifact-driven-authoring\",\"asd-ste100-writing\",\"artifact-driven-coordination\"]"
-  profileAgent.files.".claude/agents/scope-expert.md".text;
-assert lib.hasInfix "Default workflow skills: nix-module."
-  profileAgent.files.".opencode/agents/agent-service.md".text;
-assert lib.hasInfix "permissions:" profileAgent.files.".opencode/agents/agent-service.md".text;
-assert lib.hasInfix "services/agent/**/*.nix"
-  profileAgent.files.".opencode/agents/agent-service.md".text;
-assert lib.hasInfix "PreToolUse" profileAgent.files.".claude/agents/agent-service.md".text;
-assert lib.hasInfix "validate-write" profileAgent.files.".claude/agents/agent-service.md".text;
-assert lib.hasInfix "Write boundary: services/agent."
-  profileAgent.files.".codex/agents/agent-service.toml".toml.developer_instructions;
-assert lib.hasInfix "writeGlobs is not a portable Codex write boundary" (
-  builtins.concatStringsSep "\n" profileAgent.warnings
-);
-assert profileDeliveryWithoutAgent.files ? ".dw/config.yaml";
-assert profileDeliveryWithoutAgent.files ? ".github/workflows/dw-validate.yml";
-assert !(profileDeliveryWithoutAgent.workspace.agent.skill.skills ? delivery-workflow);
-assert profileDeliveryWithAgent.workspace.agent.skill.skills ? delivery-workflow;
-assert lib.hasInfix "delivery-workflow"
-  profileDeliveryWithAgent.files.".codex/agents/scope-expert.toml".toml.developer_instructions;
-assert lib.hasInfix "delivery.ticket front matter"
-  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "--classification requirement"
-  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "root Requirement"
-  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "complete Phase 2 set"
-  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert lib.hasInfix "classification task"
-  profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
-assert !profileOverridesDirectEnabledAgent.workspace.agent.harness.enable;
-assert !profileOverridesDirectEnabledAgent.workspace.agent.harness.build.enabled;
-assert profileOverridesDirectDisabledAgent.workspace.agent.harness.build.enabled;
-assert !profileOverridesDirectDelivery.workspace.delivery-workflow.enable;
-assert !(profileOverridesDirectDelivery.files ? ".dw/config.yaml");
-assert profileOverridesDirectTopology.workspace.documentation.model == "artifact-driven";
-assert profileOverridesDirectTopology.workspace.blueprint.use == "polyrepo";
-assert !(lib.all (entry: entry.assertion) profileAgentWithoutClient.assertions);
-assert !(lib.all (entry: entry.assertion) profileDeliveryWithoutGit.assertions);
-assert directConfiguration.workspace.composition.use == "unset";
-assert directConfiguration.workspace.agent.harness.build.enabled;
-assert directConfiguration.workspace.delivery-workflow.build.enabled;
-assert !(directConfiguration.workspace.agent.expert.experts ? scope-expert);
-assert !(lib.all (entry: entry.assertion) unboundedPolyrepo.assertions);
-assert !(lib.all (entry: entry.assertion) outsidePolyrepo.assertions);
-assert !(lib.all (entry: entry.assertion) invalidWritePath.assertions);
-assert !(lib.all (entry: entry.assertion) invalidWriteGlob.assertions);
-assert !(lib.all (entry: entry.assertion) invalidGenericExpert.assertions);
-assert !legacyIntegrationOption.success;
-assert !(codexOnly.files ? ".mcp.json");
-assert !(codexOnly.files ? ".claude/agents/reviewer.md");
-assert !(codexOnly.files ? ".opencode/agents/reviewer.md");
-assert claudeOpenCodeOnly.warnings == [ ];
-assert lib.all (entry: entry.assertion) disabledMcp.assertions;
-assert disabledMcp.workspace.agent.harness.build.codex.mcp == { };
-assert disabledMcp.workspace.agent.harness.build.claude.mcp == { };
-assert disabledMcp.workspace.agent.harness.build.opencode.mcp == { };
-assert lib.elem pkgs.hello packagedMcps.packages;
-assert lib.elem pkgs.git packagedMcps.packages;
-assert lib.elem pkgs.context7-mcp defaultPackagedMcps.packages;
-assert lib.elem pkgs.codegraph defaultPackagedMcps.packages;
-assert
-  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.command == "context7-mcp";
-assert
-  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.env_vars
-  == [ "CONTEXT7_API_KEY" ];
-assert
-  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.args == [
-    "serve"
-    "--mcp"
-  ];
-assert defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.cwd == toString ./.;
-true
+{
+  result =
+    assert full.workspace.agent.harness.build.enabled;
+    assert lib.all (entry: entry.assertion) full.assertions;
+    assert
+      full.workspace.agent.harness.build.codex.mcp.documentation.env_vars == [ "DOCUMENTATION_TOKEN" ];
+    assert
+      full.workspace.agent.harness.build.claude.mcp.documentation.env.DOCUMENTATION_TOKEN
+      == "\${DOCUMENTATION_TOKEN}";
+    assert
+      full.workspace.agent.harness.build.opencode.mcp.documentation.environment.DOCUMENTATION_TOKEN
+      == "{env:DOCUMENTATION_TOKEN}";
+    assert
+      full.files.".codex/config.toml".toml.mcp_servers.documentation.env_vars
+      == [ "DOCUMENTATION_TOKEN" ];
+    assert lib.all (skill: skill.enabled) full.files.".codex/config.toml".toml.skills.config;
+    assert
+      full.files.".mcp.json".json.mcpServers.documentation.env.DOCUMENTATION_TOKEN
+      == "\${DOCUMENTATION_TOKEN}";
+    assert
+      full.files.".opencode/opencode.json".json.mcp.documentation.environment.DOCUMENTATION_TOKEN
+      == "{env:DOCUMENTATION_TOKEN}";
+    assert lib.hasInfix "Default workflow skills: review-guidance."
+      full.files.".codex/agents/reviewer.toml".toml.developer_instructions;
+    assert full.scripts ? workspace-agent-run;
+    assert lib.hasInfix "--ro-bind / /" full.scripts.workspace-agent-run.exec;
+    assert lib.elem pkgs.bubblewrap full.packages;
+    assert lib.hasInfix "skills: [\"review-guidance\"]" full.files.".claude/agents/reviewer.md".text;
+    assert lib.hasInfix "mode: subagent" full.files.".opencode/agents/reviewer.md".text;
+    assert lib.hasInfix "name: \"review-guidance\""
+      full.files.".agents/skills/review-guidance/SKILL.md".text;
+    assert full.workspace.agent.skill.skills ? asd-ste100-writing;
+    assert lib.hasInfix "name: \"asd-ste100-writing\""
+      full.files.".agents/skills/asd-ste100-writing/SKILL.md".text;
+    assert full.files."CLAUDE.md".text == "@AGENTS.md\n";
+    assert full.env.DOCUMENTATION_TOKEN == "test-token";
+    assert !(lib.hasInfix "test-token" (builtins.toJSON full.files));
+    assert profileBase.workspace.composition.artifactPolyrepoWorkspace.build.enabled;
+    assert profileBase.scripts ? workspace-composition-doctor;
+    assert lib.hasInfix "Configuration: VALID" profileBase.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "Profile: artifact-polyrepo-workspace"
+      profileBase.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "Artifact-Driven Documentation"
+      profileBase.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "RESULT: VALID" profileBase.scripts.workspace-composition-doctor.exec;
+    assert profileBase.workspace.documentation.model == "artifact-driven";
+    assert profileBase.workspace.blueprint.use == "polyrepo";
+    assert profileBase.workspace.file.".".entries ? "AGENTS.md";
+    assert profileBase.workspace.file.".".entries ? "README.md";
+    assert !profileBase.workspace.agent.harness.build.enabled;
+    assert !(profileBase.workspace.agent.expert.experts ? scope-expert);
+    assert profileAgent.workspace.agent.expert.experts ? scope-expert;
+    assert profileAgent.workspace.agent.expert.experts ? technical-expert;
+    assert profileAgent.workspace.agent.expert.experts ? agent-service;
+    assert profileAgent.workspace.agent.skill.skills ? semantic-artifact-review;
+    assert lib.elem "asd-ste100-writing"
+      profileAgent.workspace.agent.expert.experts.scope-expert.defaultSkills;
+    assert profileAgent.files.".codex/agents/scope-expert.toml".toml.name == "scope-expert";
+    assert lib.hasInfix
+      "skills: [\"artifact-driven-authoring\",\"asd-ste100-writing\",\"artifact-driven-coordination\"]"
+      profileAgent.files.".claude/agents/scope-expert.md".text;
+    assert lib.hasInfix "Default workflow skills: nix-module."
+      profileAgent.files.".opencode/agents/agent-service.md".text;
+    assert lib.hasInfix "permissions:" profileAgent.files.".opencode/agents/agent-service.md".text;
+    assert lib.hasInfix "services/agent/**/*.nix"
+      profileAgent.files.".opencode/agents/agent-service.md".text;
+    assert lib.hasInfix "PreToolUse" profileAgent.files.".claude/agents/agent-service.md".text;
+    assert lib.hasInfix "validate-write" profileAgent.files.".claude/agents/agent-service.md".text;
+    assert lib.hasInfix "Write boundary: services/agent."
+      profileAgent.files.".codex/agents/agent-service.toml".toml.developer_instructions;
+    assert lib.hasInfix "writeGlobs is not a portable Codex write boundary" (
+      builtins.concatStringsSep "\n" profileAgent.warnings
+    );
+    assert lib.hasInfix "AGENT CLIENTS" profileAgent.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "- codex" profileAgent.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "- ID: scope-expert" profileAgent.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "  Role: documentation scope"
+      profileAgent.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "- ID: agent-service" profileAgent.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "  Source: polyrepo implementation"
+      profileAgent.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "    - services/agent/**/*.nix"
+      profileAgent.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "exit 1" profileDoctorInvalid.scripts.workspace-composition-doctor.exec;
+    assert lib.hasInfix "RESULT: INVALID"
+      profileDoctorInvalid.scripts.workspace-composition-doctor.exec;
+    assert profileDeliveryWithoutAgent.files ? ".dw/config.yaml";
+    assert profileDeliveryWithoutAgent.files ? ".github/workflows/dw-validate.yml";
+    assert !(profileDeliveryWithoutAgent.workspace.agent.skill.skills ? delivery-workflow);
+    assert profileDeliveryWithAgent.workspace.agent.skill.skills ? delivery-workflow;
+    assert lib.hasInfix "delivery-workflow"
+      profileDeliveryWithAgent.files.".codex/agents/scope-expert.toml".toml.developer_instructions;
+    assert lib.hasInfix "delivery.ticket front matter"
+      profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+    assert lib.hasInfix "--classification requirement"
+      profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+    assert lib.hasInfix "root Requirement"
+      profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+    assert lib.hasInfix "complete Phase 2 set"
+      profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+    assert lib.hasInfix "classification task"
+      profileDeliveryWithAgent.files.".agents/skills/delivery-workflow/SKILL.md".text;
+    assert !profileOverridesDirectEnabledAgent.workspace.agent.harness.enable;
+    assert !profileOverridesDirectEnabledAgent.workspace.agent.harness.build.enabled;
+    assert profileOverridesDirectDisabledAgent.workspace.agent.harness.build.enabled;
+    assert !profileOverridesDirectDelivery.workspace.delivery-workflow.enable;
+    assert !(profileOverridesDirectDelivery.files ? ".dw/config.yaml");
+    assert profileOverridesDirectTopology.workspace.documentation.model == "artifact-driven";
+    assert profileOverridesDirectTopology.workspace.blueprint.use == "polyrepo";
+    assert !(lib.all (entry: entry.assertion) profileAgentWithoutClient.assertions);
+    assert !(lib.all (entry: entry.assertion) profileDeliveryWithoutGit.assertions);
+    assert directConfiguration.workspace.composition.use == "unset";
+    assert directConfiguration.scripts ? workspace-composition-doctor;
+    assert lib.hasInfix "Profile: unset" directConfiguration.scripts.workspace-composition-doctor.exec;
+    assert directConfiguration.workspace.agent.harness.build.enabled;
+    assert directConfiguration.workspace.delivery-workflow.build.enabled;
+    assert !(directConfiguration.workspace.agent.expert.experts ? scope-expert);
+    assert !(lib.all (entry: entry.assertion) unboundedPolyrepo.assertions);
+    assert !(lib.all (entry: entry.assertion) outsidePolyrepo.assertions);
+    assert !(lib.all (entry: entry.assertion) invalidWritePath.assertions);
+    assert !(lib.all (entry: entry.assertion) invalidWriteGlob.assertions);
+    assert !(lib.all (entry: entry.assertion) invalidGenericExpert.assertions);
+    assert !legacyIntegrationOption.success;
+    assert !(codexOnly.files ? ".mcp.json");
+    assert !(codexOnly.files ? ".claude/agents/reviewer.md");
+    assert !(codexOnly.files ? ".opencode/agents/reviewer.md");
+    assert claudeOpenCodeOnly.warnings == [ ];
+    assert lib.all (entry: entry.assertion) disabledMcp.assertions;
+    assert disabledMcp.workspace.agent.harness.build.codex.mcp == { };
+    assert disabledMcp.workspace.agent.harness.build.claude.mcp == { };
+    assert disabledMcp.workspace.agent.harness.build.opencode.mcp == { };
+    assert lib.elem pkgs.hello packagedMcps.packages;
+    assert lib.elem pkgs.git packagedMcps.packages;
+    assert lib.elem pkgs.context7-mcp defaultPackagedMcps.packages;
+    assert lib.elem pkgs.codegraph defaultPackagedMcps.packages;
+    assert
+      defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.command == "context7-mcp";
+    assert
+      defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.env_vars
+      == [ "CONTEXT7_API_KEY" ];
+    assert
+      defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.args == [
+        "serve"
+        "--mcp"
+      ];
+    assert defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.cwd == toString ./.;
+    true;
+
+  doctorInvalidScript = profileDoctorInvalid.scripts.workspace-composition-doctor.exec;
+}
