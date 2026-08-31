@@ -353,6 +353,58 @@ let
       };
     };
   };
+
+  packagedMcps = evaluate {
+    workspace.agent = {
+      harness = {
+        enable = true;
+        clients.codex.enable = true;
+      };
+      mcp = {
+        servers = {
+          context7 = {
+            enable = true;
+            command = [ "context7-mcp" ];
+          };
+          codegraph = {
+            enable = true;
+            command = [
+              "codegraph"
+              "serve"
+              "--mcp"
+            ];
+          };
+        };
+        mcps = {
+          context7.package = pkgs.hello;
+          codegraph.package = pkgs.git;
+        };
+      };
+    };
+  };
+
+  defaultPackagedMcps = evaluate {
+    workspace.agent = {
+      harness = {
+        enable = true;
+        clients.codex.enable = true;
+      };
+      mcp.servers = {
+        context7 = {
+          enable = true;
+          command = [ "context7-mcp" ];
+        };
+        codegraph = {
+          enable = true;
+          command = [
+            "codegraph"
+            "serve"
+            "--mcp"
+          ];
+        };
+      };
+    };
+  };
 in
 assert full.workspace.agent.harness.build.enabled;
 assert lib.all (entry: entry.assertion) full.assertions;
@@ -461,4 +513,8 @@ assert lib.all (entry: entry.assertion) disabledMcp.assertions;
 assert disabledMcp.workspace.agent.harness.build.codex.mcp == { };
 assert disabledMcp.workspace.agent.harness.build.claude.mcp == { };
 assert disabledMcp.workspace.agent.harness.build.opencode.mcp == { };
+assert lib.elem pkgs.hello packagedMcps.packages;
+assert lib.elem pkgs.git packagedMcps.packages;
+assert lib.elem pkgs.context7-mcp defaultPackagedMcps.packages;
+assert lib.elem pkgs.codegraph defaultPackagedMcps.packages;
 true

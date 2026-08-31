@@ -21,6 +21,8 @@ The Agent Harness uses these project options:
 | `workspace.agent.mcp.servers.<id>.command` | List of strings, empty | Defines a local standard input and output command. |
 | `workspace.agent.mcp.servers.<id>.cwd` | Nullable path, `null` | Sets the optional process directory. |
 | `workspace.agent.mcp.servers.<id>.environment` | Attribute set, empty | Sets literal values or `{ secret = "NAME"; }` references. |
+| `workspace.agent.mcp.mcps.context7.package` | Package, `pkgs.context7-mcp` | Selects the Context7 MCP package. |
+| `workspace.agent.mcp.mcps.codegraph.package` | Package, `pkgs.codegraph` | Selects the Codegraph MCP package. |
 | `workspace.agent.expert.experts.<id>.description` | String | Defines when to use an expert. |
 | `workspace.agent.expert.experts.<id>.persistentInstructions` | String | Defines persistent expert instructions. |
 | `workspace.agent.expert.experts.<id>.defaultSkills` | List of strings, empty | Defines preferred workflow skills. |
@@ -56,6 +58,11 @@ Enabled MCP servers are project-global for each enabled client. Experts do not
 define client-specific MCP allow lists. Disabled MCP servers do not generate
 client entries. They do not require a command or SecretSpec references.
 
+An enabled `context7` or `codegraph` server installs its selected MCP package.
+The package option defaults to the project package from Nixpkgs. A user can set
+the option to a compatible package from their own package set. The selected
+package must provide the executable in the server command.
+
 Literal environment values remain literal. Secret references use the
 SecretSpec environment-variable name:
 
@@ -77,12 +84,13 @@ Every enabled client receives both servers.
 ```nix
 workspace.agent.mcp.servers.context7 = {
   enable = true;
-  command = [ "npx" "-y" "@upstash/context7-mcp" ];
+  command = [ "context7-mcp" ];
   environment.CONTEXT7_API_KEY = { secret = "CONTEXT7_API_KEY"; };
 };
 ```
 
-The `CONTEXT7_API_KEY` secret is optional. When no key is configured, the
+The `context7-mcp` executable comes from the selected Context7 package. The
+`CONTEXT7_API_KEY` secret is optional. When no key is configured, the
 server runs without an API key and may receive rate limits. When the secret is
 declared, SecretSpec supplies it at startup, and every generated client asset
 contains only the `{env:CONTEXT7_API_KEY}`, `${CONTEXT7_API_KEY}`, or
@@ -99,7 +107,7 @@ workspace.agent.mcp.servers.codegraph = {
 };
 ```
 
-The `codegraph` command comes from the `@colbymchenry/codegraph` package. The
+The `codegraph` command comes from the selected Codegraph package. The
 repository root is the process directory. The server reads the local
 `.codegraph/` index. The index requires one `codegraph init` run in the
 repository root. The server auto-syncs the index on file changes. The
