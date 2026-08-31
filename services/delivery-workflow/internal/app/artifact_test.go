@@ -163,6 +163,107 @@ func TestDraftCreatesRootRequirementTicketWithAssignees(t *testing.T) {
 	}
 }
 
+func TestCreateDraftTicketAssignsConfiguredClassification(t *testing.T) {
+	state := func(id string) config.State { return config.State{ID: id, Sources: []string{id}} }
+	classifications := config.Classification{Requirement: "Requirement", Specification: "Specification", Decision: "Decision", Task: "Task"}
+	tests := []struct {
+		name           string
+		ownerType      string
+		classification workflow.Classification
+		issueType      string
+	}{
+		{name: "organization draft", ownerType: "organization", classification: workflow.RequirementClassification, issueType: "Requirement"},
+		{name: "organization specification handoff", ownerType: "organization", classification: workflow.SpecificationClassification, issueType: "Specification"},
+		{name: "organization decision handoff", ownerType: "organization", classification: workflow.DecisionClassification, issueType: "Decision"},
+		{name: "organization task handoff", ownerType: "organization", classification: workflow.TaskClassification, issueType: "Task"},
+		{name: "user draft uses label", ownerType: "user", classification: workflow.RequirementClassification, issueType: "Requirement"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var createdLabels []string
+			var assignedType string
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				switch request.URL.Path {
+				case "/repos/example/repository/issues":
+					var input struct {
+						Labels []string `json:"labels"`
+					}
+					if err := json.NewDecoder(request.Body).Decode(&input); err != nil {
+						t.Fatal(err)
+					}
+					createdLabels = input.Labels
+					_ = json.NewEncoder(writer).Encode(map[string]any{"number": 17, "html_url": "https://github.com/example/repository/issues/17", "assignees": []map[string]string{{"login": "owner"}}})
+				case "/repos/example/repository/issues/17":
+					_ = json.NewEncoder(writer).Encode(map[string]string{"node_id": "issue-node"})
+				case "/repos/example/repository/issues/17/comments":
+					writer.WriteHeader(http.StatusCreated)
+				case "/graphql":
+					var payload struct {
+						Query     string         `json:"query"`
+						Variables map[string]any `json:"variables"`
+					}
+					if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+						t.Fatal(err)
+					}
+					switch {
+					case strings.Contains(payload.Query, "issueTypes(first: 100)"):
+						_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"organization": map[string]any{"issueTypes": map[string]any{"nodes": []map[string]string{{"id": "type-node", "name": test.issueType}}}}}})
+					case strings.Contains(payload.Query, "updateIssue"):
+						assignedType, _ = payload.Variables["type"].(string)
+						_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"updateIssue": map[string]any{"issue": map[string]string{"id": "issue-node"}}}})
+					case strings.Contains(payload.Query, "addProjectV2ItemById"):
+						_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"addProjectV2ItemById": map[string]any{"item": map[string]string{"id": "item-node"}}}})
+					case strings.Contains(payload.Query, "updateProjectV2ItemFieldValue"):
+						_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"updateProjectV2ItemFieldValue": map[string]any{"projectV2Item": map[string]string{"id": "item-node"}}}})
+					default:
+						t.Fatalf("unexpected GraphQL query: %s", payload.Query)
+					}
+				default:
+					t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+				}
+			}))
+			defer server.Close()
+
+			service := App{Config: config.Config{GitHub: config.GitHub{Repository: "example/repository", Classification: classifications, Project: config.Project{Owner: "example", OwnerType: test.ownerType, ID: "project-node", StatusFieldID: "status-field"}}, States: config.States{Draft: state("draft")}}, GitHub: github.NewWithBaseURL("token", server.URL, server.Client())}
+			if _, _, err := service.createDraftTicket(context.Background(), "Ticket", "Description.", []string{"artifact.md"}, test.classification, []string{"owner"}); err != nil {
+				t.Fatal(err)
+			}
+			if test.ownerType == "organization" {
+				if assignedType != "type-node" || len(createdLabels) != 0 {
+					t.Fatalf("Issue Type = %q, labels = %#v", assignedType, createdLabels)
+				}
+			} else if assignedType != "" || len(createdLabels) != 1 || createdLabels[0] != test.issueType {
+				t.Fatalf("Issue Type = %q, labels = %#v", assignedType, createdLabels)
+			}
+		})
+	}
+}
+
+func TestCreateDraftTicketRejectsMissingOrganizationIssueType(t *testing.T) {
+	created := false
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.URL.Path {
+		case "/graphql":
+			_ = json.NewEncoder(writer).Encode(map[string]any{"data": map[string]any{"organization": map[string]any{"issueTypes": map[string]any{"nodes": []any{}}}}})
+		case "/repos/example/repository/issues":
+			created = true
+			writer.WriteHeader(http.StatusCreated)
+		default:
+			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	service := App{Config: config.Config{GitHub: config.GitHub{Repository: "example/repository", Classification: config.Classification{Requirement: "Requirement"}, Project: config.Project{Owner: "example", OwnerType: "organization"}}}, GitHub: github.NewWithBaseURL("token", server.URL, server.Client())}
+	_, _, err := service.createDraftTicket(context.Background(), "Ticket", "Description.", []string{"artifact.md"}, workflow.RequirementClassification, []string{"owner"})
+	if err == nil || !strings.Contains(err.Error(), `GitHub Issue Type "Requirement" was not found for organization "example"`) {
+		t.Fatalf("createDraftTicket() error = %v", err)
+	}
+	if created {
+		t.Fatal("createDraftTicket() created an Issue without its configured Issue Type")
+	}
+}
+
 func TestDraftReusesRootTicketAndPreservesAssignees(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "requirement.md")
 	if err := os.WriteFile(path, []byte("# Specification\n"), 0o644); err != nil {

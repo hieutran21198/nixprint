@@ -287,6 +287,36 @@ func (c *Client) IssueNodeID(ctx context.Context, repository string, number int)
 	return issue.NodeID, nil
 }
 
+// IssueTypeID resolves an organization Issue Type by its configured name.
+func (c *Client) IssueTypeID(ctx context.Context, organization, name string) (string, error) {
+	const query = `query($organization: String!) { organization(login: $organization) { issueTypes(first: 100) { nodes { id name } } } }`
+	var result struct {
+		Organization struct {
+			IssueTypes struct {
+				Nodes []struct {
+					ID   string `json:"id"`
+					Name string `json:"name"`
+				} `json:"nodes"`
+			} `json:"issueTypes"`
+		} `json:"organization"`
+	}
+	if err := c.graphql(ctx, query, map[string]any{"organization": organization}, &result); err != nil {
+		return "", err
+	}
+	for _, issueType := range result.Organization.IssueTypes.Nodes {
+		if issueType.Name == name {
+			return issueType.ID, nil
+		}
+	}
+	return "", fmt.Errorf("GitHub Issue Type %q was not found for organization %q", name, organization)
+}
+
+// SetIssueType assigns an organization Issue Type to an Issue.
+func (c *Client) SetIssueType(ctx context.Context, issueID, issueTypeID string) error {
+	const query = `mutation($issue: ID!, $type: ID!) { updateIssue(input: { id: $issue issueTypeId: $type }) { issue { id } } }`
+	return c.graphql(ctx, query, map[string]any{"issue": issueID, "type": issueTypeID}, &struct{}{})
+}
+
 func (c *Client) GetPullRequest(ctx context.Context, repository string, number int) (PullRequest, error) {
 	var pr PullRequest
 	if err := c.request(ctx, http.MethodGet, fmt.Sprintf("/repos/%s/pulls/%d", repository, number), nil, &pr); err != nil {
