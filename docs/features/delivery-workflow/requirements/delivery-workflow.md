@@ -33,6 +33,7 @@ Provide a reliable Artifact-Driven Delivery Workflow. Correlate each complete do
 - The adapter MUST require classifications to exist. It MUST NOT provision organization Issue Types.
 - Issue bodies MUST contain one description paragraph and a deduplicated artifact-reference list.
 - Issue bodies MUST NOT contain hidden delivery records or copied canonical artifact content.
+- The Nix module MUST install `dw` before a complete delivery-workflow configuration exists.
 
 ## Acceptance Criteria
 

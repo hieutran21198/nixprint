@@ -61,6 +61,12 @@ The lifecycle states are `draft`, `accepted`, `ready`, `in_progress`, `archived`
 
 The adapter requires configured labels and Issue Types to exist. It does not provision organization Issue Types.
 
+`workspace.delivery-workflow.install = true` installs `dw` without generating
+files or requiring GitHub configuration. `workspace.delivery-workflow.enable = true`
+installs `dw`, requires complete configuration, and generates the local
+configuration and GitHub workflow files. The Artifact-Polyrepo Workspace profile
+owns the equivalent settings at `workspace.composition.deliveryWorkflow`.
+
 ## Verification
 
 Tests cover classification mechanisms, native parents, exact Issue bodies, complete phase sets, strict gates, partial failures, audit records, all transitions, parallel pull requests, and both Phase 4 automation settings. Nix tests verify version 2, all classifications, Accepted and Ready, owner-type selection, and generated configuration.
