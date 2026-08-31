@@ -49,3 +49,8 @@ users inspect the effective Artifact-Polyrepo Workspace composition.
 
 This requirement does not define runtime readiness checks, MCP probes,
 secret-value inspection, or a machine-readable output format.
+
+## Specification
+
+See the
+[Artifact-Polyrepo Composition Doctor Specification](../specifications/composition-doctor.md).
