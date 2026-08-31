@@ -276,8 +276,14 @@ func (a App) createDraftTicket(ctx context.Context, title, description string, a
 		return 0, "", err
 	}
 	var labels []string
+	var issueTypeID string
 	if a.Config.GitHub.Project.OwnerKind() == "user" {
 		labels = []string{a.classificationName(classification)}
+	} else if a.Config.GitHub.Project.OwnerKind() == "organization" {
+		issueTypeID, err = a.GitHub.IssueTypeID(ctx, a.Config.GitHub.Project.Owner, a.classificationName(classification))
+		if err != nil {
+			return 0, "", err
+		}
 	}
 	number, ticketURL, actualAssignees, err := a.GitHub.CreateIssue(ctx, a.Config.GitHub.Repository, title, body, assignees, labels)
 	if err != nil {
@@ -296,6 +302,11 @@ func (a App) createDraftTicket(ctx context.Context, title, description string, a
 	nodeID, err := a.GitHub.IssueNodeID(ctx, a.Config.GitHub.Repository, number)
 	if err != nil {
 		return 0, "", err
+	}
+	if issueTypeID != "" {
+		if err := a.GitHub.SetIssueType(ctx, nodeID, issueTypeID); err != nil {
+			return 0, "", err
+		}
 	}
 	itemID, err := a.GitHub.AddProjectItem(ctx, a.Config.GitHub.Project.ID, nodeID)
 	if err != nil {
