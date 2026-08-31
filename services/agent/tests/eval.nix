@@ -61,6 +61,7 @@ let
     config.secretspec = {
       enable = true;
       secrets.DOCUMENTATION_TOKEN = "test-token";
+      secrets.CONTEXT7_API_KEY = "context7-test-token";
     };
 
     config._module.args.pkgs = pkgs;
@@ -507,6 +508,9 @@ assert lib.elem pkgs.context7-mcp defaultPackagedMcps.packages;
 assert lib.elem pkgs.codegraph defaultPackagedMcps.packages;
 assert
   defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.command == "context7-mcp";
+assert
+  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.env_vars
+  == [ "CONTEXT7_API_KEY" ];
 assert
   defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.args == [
     "serve"

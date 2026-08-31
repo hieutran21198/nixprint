@@ -91,9 +91,9 @@ workspace.agent.mcp.builtinServers.context7 = {
 ```
 
 The `context7-mcp` executable comes from the selected Context7 package. The
-server runs without an API key and may receive rate limits. A project can add
-an optional SecretSpec reference through the neutral `context7` server
-declaration. Generated client assets contain only the secret reference.
+built-in declaration uses the `CONTEXT7_API_KEY` SecretSpec environment
+reference. The secret remains optional. Generated client assets contain only
+the secret reference.
 
 `codegraph` provides code-graph queries over a local repository index. It uses
 this declaration:

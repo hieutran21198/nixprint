@@ -26,6 +26,7 @@ in
     ${namespace}.agent.mcp.servers.context7 = {
       enable = lib.mkDefault true;
       command = lib.mkDefault [ "context7-mcp" ];
+      environment.CONTEXT7_API_KEY.secret = lib.mkDefault "CONTEXT7_API_KEY";
     };
   };
 }

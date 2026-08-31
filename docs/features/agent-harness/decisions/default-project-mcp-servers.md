@@ -29,8 +29,9 @@ must receive both servers.
 ## Decision
 
 Use option 3. Provide Context7 and Codegraph as built-in MCP servers. Context7
-uses the command `context7-mcp`. Codegraph uses the command `codegraph serve
---mcp` in the repository root. Nix installs `pkgs.context7-mcp` and
+uses the command `context7-mcp` and the optional `CONTEXT7_API_KEY` SecretSpec
+environment reference. Codegraph uses the command `codegraph serve --mcp` in
+the repository root. Nix installs `pkgs.context7-mcp` and
 `pkgs.codegraph` when the related built-in server is enabled. Users can override
 either package with a compatible package.
 
