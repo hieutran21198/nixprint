@@ -1,3 +1,7 @@
+---
+delivery:
+    ticket: https://github.com/hieutran21198/nixprint/issues/18
+---
 # Artifact-Polyrepo Composition Doctor Requirements
 
 ## Outcome
