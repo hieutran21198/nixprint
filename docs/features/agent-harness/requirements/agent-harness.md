@@ -16,6 +16,7 @@ implementation write boundaries.
 - One harness configuration MUST select the enabled clients.
 - A disabled client MUST receive no client-specific assets.
 - MCP servers MUST use local standard input and output commands.
+- Each MCP server declaration MUST provide an enable setting.
 - MCP environment values MUST support literal values and SecretSpec secret
   references.
 - Generated files MUST contain secret references and MUST NOT contain resolved
@@ -55,6 +56,8 @@ implementation write boundaries.
   harness starts.
 - Invalid MCP commands, secret references, write paths, or write globs fail
   evaluation.
+- A disabled MCP server MUST not generate a client entry or require its command
+  and secret references.
 - The required runner permits declared repository writes and rejects other
   repository writes.
 - Claude Code and OpenCode receive native direct-edit guardrails.

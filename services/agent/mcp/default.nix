@@ -8,6 +8,7 @@ let
   inherit (config.${namespace}) utils;
   cfg = config.${namespace}.agent.mcp;
   harness = config.${namespace}.agent.harness;
+  enabledServers = lib.filterAttrs (_: server: server.enable) cfg.servers;
 
   environmentValue = lib.types.either lib.types.str (
     lib.types.submodule {
@@ -25,7 +26,9 @@ let
       lib.filterAttrs (_: value: isSecret value) environment
     );
   requiredSecrets = lib.unique (
-    lib.concatMap (server: secretEnvironmentNames server.environment) (builtins.attrValues cfg.servers)
+    lib.concatMap (server: secretEnvironmentNames server.environment) (
+      builtins.attrValues enabledServers
+    )
   );
   claudeSecretReference =
     secret:
@@ -81,13 +84,17 @@ in
     servers = utils.mkAttrsOpt {
       ofType = lib.types.submodule {
         options = {
+          enable = utils.mkBoolOpt {
+            default = false;
+            description = "Enable this local MCP server";
+          };
           command = utils.mkListOpt {
             ofType = lib.types.str;
             default = [ ];
             description = "Local MCP stdio command, including arguments";
           };
-          cwd = utils.mkPathOpt {
-            nullable = true;
+          cwd = lib.mkOption {
+            type = lib.types.nullOr (lib.types.either lib.types.path lib.types.str);
             default = null;
             description = "Optional MCP process working directory";
           };
@@ -108,7 +115,7 @@ in
       lib.mapAttrsToList (name: server: {
         assertion = server.command != [ ];
         message = "workspace.agent.mcp.servers.${name}.command is required";
-      }) cfg.servers
+      }) enabledServers
       ++ lib.optional (requiredSecrets != [ ]) {
         assertion = config.secretspec.enable;
         message = "workspace.agent.mcp requires Devenv SecretSpec for declared secret environment variables";
@@ -123,9 +130,11 @@ in
     );
 
     ${namespace}.agent.harness.build = {
-      codex.mcp = lib.mkIf harness.clients.codex.enable (lib.mapAttrs codexServer cfg.servers);
-      claude.mcp = lib.mkIf harness.clients.claude.enable (lib.mapAttrs claudeServer cfg.servers);
-      opencode.mcp = lib.mkIf harness.clients.opencode.enable (lib.mapAttrs opencodeServer cfg.servers);
+      codex.mcp = lib.mkIf harness.clients.codex.enable (lib.mapAttrs codexServer enabledServers);
+      claude.mcp = lib.mkIf harness.clients.claude.enable (lib.mapAttrs claudeServer enabledServers);
+      opencode.mcp = lib.mkIf harness.clients.opencode.enable (
+        lib.mapAttrs opencodeServer enabledServers
+      );
     };
   };
 }

@@ -29,6 +29,10 @@ let
       type = lib.types.attrsOf lib.types.anything;
       default = { };
     };
+    options.git.root = lib.mkOption {
+      type = lib.types.str;
+      default = toString ./.;
+    };
     options.env = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
@@ -57,6 +61,7 @@ let
     config.secretspec = {
       enable = true;
       secrets.DOCUMENTATION_TOKEN = "test-token";
+      secrets.CONTEXT7_API_KEY = "context7-test-token";
     };
 
     config._module.args.pkgs = pkgs;
@@ -73,6 +78,7 @@ let
     }).config;
 
   standardMcp = {
+    enable = true;
     command = [
       "npx"
       "-y"
@@ -335,6 +341,59 @@ let
       };
     };
   };
+
+  disabledMcp = evaluate {
+    workspace.agent = {
+      harness = {
+        enable = true;
+        clients = {
+          codex.enable = true;
+          claude.enable = true;
+          opencode.enable = true;
+        };
+      };
+      mcp.servers.disabled = {
+        command = [ ];
+        environment.MISSING_SECRET.secret = "MISSING_SECRET";
+      };
+    };
+  };
+
+  packagedMcps = evaluate {
+    workspace.agent = {
+      harness = {
+        enable = true;
+        clients.codex.enable = true;
+      };
+      mcp.builtinServers = {
+        context7 = {
+          enable = true;
+          package = pkgs.hello;
+        };
+        codegraph = {
+          enable = true;
+          package = pkgs.git;
+        };
+      };
+    };
+  };
+
+  defaultPackagedMcps = evaluate {
+    workspace.agent = {
+      harness = {
+        enable = true;
+        clients.codex.enable = true;
+      };
+      mcp.builtinServers = {
+        context7 = {
+          enable = true;
+        };
+        codegraph = {
+          enable = true;
+        };
+      };
+    };
+  };
 in
 assert full.workspace.agent.harness.build.enabled;
 assert lib.all (entry: entry.assertion) full.assertions;
@@ -439,4 +498,23 @@ assert !(codexOnly.files ? ".mcp.json");
 assert !(codexOnly.files ? ".claude/agents/reviewer.md");
 assert !(codexOnly.files ? ".opencode/agents/reviewer.md");
 assert claudeOpenCodeOnly.warnings == [ ];
+assert lib.all (entry: entry.assertion) disabledMcp.assertions;
+assert disabledMcp.workspace.agent.harness.build.codex.mcp == { };
+assert disabledMcp.workspace.agent.harness.build.claude.mcp == { };
+assert disabledMcp.workspace.agent.harness.build.opencode.mcp == { };
+assert lib.elem pkgs.hello packagedMcps.packages;
+assert lib.elem pkgs.git packagedMcps.packages;
+assert lib.elem pkgs.context7-mcp defaultPackagedMcps.packages;
+assert lib.elem pkgs.codegraph defaultPackagedMcps.packages;
+assert
+  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.command == "context7-mcp";
+assert
+  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.context7.env_vars
+  == [ "CONTEXT7_API_KEY" ];
+assert
+  defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.args == [
+    "serve"
+    "--mcp"
+  ];
+assert defaultPackagedMcps.workspace.agent.harness.build.codex.mcp.codegraph.cwd == toString ./.;
 true
